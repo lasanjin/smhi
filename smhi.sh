@@ -1,36 +1,75 @@
 #!/bin/bash
 
 smhi() {
+    local ndays=1
+	if [ ! -z $1 ]; then
+		ndays=$1
+
+		if ! [[ "$1" =~ ^[0-9]*$ ]] || [ $1 -lt 0 ]; then
+			echo -e "\nInvalid input\n"
+			return 0
+		fi
+	fi
+
     smhi_url
     smhi_data $url
 
     read -r -a arr -d '' <<<"$data"
 
     style
+    local today=$(date +'%Y-%m-%d')
+    local todate=$(date -d "$today+$ndays days" +'%s')
+
+    declare local tmpdate
+    declare local tmptemp
     local length=${#arr[@]}
-    local temp=''
-    for ((i = 0; i < $length; i += 4)); do
+    for ((i = 0; i < $length; i += 5)); do
 
         local validTime=${arr[i]}
-        local pmin=${arr[$((i + 1))]}
-        local t=${arr[$((i + 2))]}
-        local ws=${arr[$((i + 3))]}
-
         local date=$(date --date "$validTime" +'%Y-%m-%d')
+        local current=$(date -d "$date" +'%s')
+        if [ $todate -le $current ]; then
+            echo ""
+            break
+        fi
 
-        if [ "$date" != "$temp" ]; then
-            local units='\t°C\tm/s\tmm/h'
+        local Wsymb2=${arr[$((i + 1))]}
+        local pmin=${arr[$((i + 2))]}
+        
+        local t=${arr[$((i + 3))]}
+
+
+        local ws=${arr[$((i + 4))]}
+
+        if [ "$date" != "$tmpdate" ]; then
+            local units='\t°C\tm/s\tmm\h\tdesc'
             local lang='sv_SE.utf-8'
-            day=$(LC_TIME=$lang date --date "$validTime" +'%A')
+            local day=$(LC_TIME=$lang date --date "$validTime" +'%A')
 
             echo -e "\n${bold}${green}${day}${default}${units}"
 
-            temp=$date
+            tmpdate=$date
         fi
 
-        time=$(date --date "$validTime" '+%H:%M')
-        echo -e "$time\t${bold}${blue}${t}\t${ws}\t${pmin}${default}"
+        local time=$(date --date "$validTime" '+%H:%M')
+        local description=$(sed "${Wsymb2}q;d" Wsymb2SV.txt)
+        local head=${dim}$time'\t'${default}${bold}
+        local tail='\t'${blue}${ws}'\t'${pmin}${default}${dim}'\t'${description}${default}
+
+        if temp "30" "$t"; then
+            echo -e "${head}${red}${t}$tail"
+        elif temp "25" "$t"; then
+            echo -e "${head}${orange}${t}$tail"
+        elif temp "20" "$t"; then
+            echo -e "${head}${yellow}${t}${tail}"
+        else
+            echo -e "${head}${blue}${t}${tail}"
+        fi
     done
+}
+
+temp() {
+    [ 1 -eq $(echo ""$2" >= "$1"" | bc) ]
 }
 
 smhi_url() {
@@ -47,7 +86,7 @@ smhi_data() {
     data=$(
         curl -s $1 | jq -r '.timeSeries[].parameters|=sort_by(.name) | 
     .timeSeries[] | .validTime, (.parameters[] | 
-    select(.name == ("pmin", "t", "ws")) | .values[])'
+    select(.name == ("Wsymb2", "pmin", "t", "ws")) | .values[])'
     )
 }
 
@@ -56,6 +95,10 @@ style() {
     bold='\e[1m'
     green='\e[32m'
     blue='\e[94m'
+    yellow='\e[33m'
+    orange='\e[38;5;202m'
+    red='\e[31m'
+    dim='\e[2m'
 }
 
-smhi
+smhi $1
