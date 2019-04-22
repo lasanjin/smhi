@@ -2,30 +2,32 @@
 
 smhi() {
     local ndays=1
-	if [ ! -z $1 ]; then
-		ndays=$1
+    if [ ! -z $1 ]; then
+        ndays=$1
 
-		if ! [[ "$1" =~ ^[0-9]*$ ]] || [ $1 -lt 0 ]; then
-			echo -e "\nInvalid input\n"
-			return 0
-		fi
-	fi
+        if ! [[ "$1" =~ ^[0-9]*$ ]] || [ $1 -lt 0 ]; then
+            echo -e "\nInvalid input\n"
+            return 0
+        fi
+    fi
 
     smhi_url
     smhi_data $url
+    style
 
     read -r -a arr -d '' <<<"$data"
 
-    style
     local today=$(date +'%Y-%m-%d')
     local todate=$(date -d "$today+$ndays days" +'%s')
 
     declare local tmpdate
     declare local tmptemp
+
     local length=${#arr[@]}
     for ((i = 0; i < $length; i += 5)); do
 
         local validTime=${arr[i]}
+
         local date=$(date --date "$validTime" +'%Y-%m-%d')
         local current=$(date -d "$date" +'%s')
         if [ $todate -le $current ]; then
@@ -35,10 +37,7 @@ smhi() {
 
         local Wsymb2=${arr[$((i + 1))]}
         local pmin=${arr[$((i + 2))]}
-        
         local t=${arr[$((i + 3))]}
-
-
         local ws=${arr[$((i + 4))]}
 
         if [ "$date" != "$tmpdate" ]; then
@@ -47,7 +46,6 @@ smhi() {
             local day=$(LC_TIME=$lang date --date "$validTime" +'%A')
 
             echo -e "\n${bold}${green}${day}${default}${units}"
-
             tmpdate=$date
         fi
 
@@ -81,7 +79,6 @@ smhi_url() {
     url=''$hostname''$api''$long''$lat''$filename''
 }
 
-#sort json by parameter name: pmin, t, ws
 smhi_data() {
     data=$(
         curl -s $1 | jq -r '.timeSeries[].parameters|=sort_by(.name) | 
