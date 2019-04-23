@@ -1,44 +1,50 @@
 #!/bin/bash
 
 smhi() {
-    local ndays=1
-    if ! isempty $1; then
-        ndays=$1
-
-        if ! isdigit $1 || isnegative $1; then
-            echo -e "\nInvalid input\n"
-            return 0
-        fi
+    if ! is_valid $1; then
+        echo -e "\nInvalid input\n"
+        return 0
     fi
 
-    smhi_url
-    smhi_data $url
-    directory
+    if ! is_zipcode $2 && ! is_empty $2; then
+        echo -e "\nInvalid input\n"
+        return 0
+    fi
+
+    local zurl=$(zipcode_url $2)
+    local zipcoords=$(zipcode_coords $zurl)
+    local coords=$(coordinates $2 ${zipcoords[@]})
+
+    if ! is_coords ${coords[@]}; then
+        echo -e "\nInvalid zipcode\n"
+        return 0
+    fi
+
+    local surl=$(smhi_url ${coords[@]})
+    read -r -a forecast -d '' <<<"$(smhi_data $surl)"
+    currentdir
     style
 
-    read -r -a arr -d '' <<<"$data"
-
     local today=$(date +'%Y-%m-%d')
-    local todate=$(date -d "$today+$ndays days" +'%s')
-    local dir=$dir
-    declare local tmpdate
+    local todate=$(date -d "$today+$1 days" +'%s')
+    local tmpdate
+    local length=${#forecast[@]}
 
-    local length=${#arr[@]}
     for ((i = 0; i < $length; i += 5)); do
 
-        local validTime=${arr[i]}
-
+        local validTime=${forecast[i]}
         local date=$(date --date "$validTime" +'%Y-%m-%d')
         local current=$(date -d "$date" +'%s')
+
         if [ $todate -le $current ]; then
             echo ""
             break
         fi
 
-        local Wsymb2=${arr[$((i + 1))]}
-        local pmin=${arr[$((i + 2))]}
-        local t=${arr[$((i + 3))]}
-        local ws=${arr[$((i + 4))]}
+        local Wsymb2=${forecast[$((i + 1))]}
+        local pmin=${forecast[$((i + 2))]}
+        local t=${forecast[$((i + 3))]}
+        local ws=${forecast[$((i + 4))]}
 
         if ! equals $date $tmpdate; then
             local units='\t°C\tm/s\tmm\h\tdesc'
@@ -46,6 +52,7 @@ smhi() {
             local day=$(LC_TIME=$lang date --date "$validTime" +'%A')
 
             echo -e "\n${bold}${green}${day}${default}${units}"
+
             tmpdate=$date
         fi
 
@@ -66,21 +73,55 @@ smhi() {
     done
 }
 
+coordinates() {
+    local zipcode=$1 && shift
+    local tmpcoords=($@)
+
+    #default coords
+    local -A coords=(
+        [lat]=57.721920
+        [long]=11.923514)
+
+    if ! is_empty $zipcode; then
+        coords[lat]=${tmpcoords[0]}
+        coords[long]=${tmpcoords[1]}
+    fi
+
+    echo ${coords[@]}
+}
+
+zipcode_url() {
+    local hostname='http://yourmoneyisnowmymoney.com/'
+    local api='api/zipcodes/?zipcode='$1''
+    local filename='?response=json'
+    local zurl=''$hostname''$api''$filename''
+    echo $zurl
+}
+
+zipcode_coords() {
+    local data=$(curl -s $1 | jq -r '.results[] | .lat, .lng')
+    declare -A local coords
+    echo $data
+}
+
 smhi_url() {
+    local smhicoords=($@)
+    local lat='lat/'${smhicoords[0]}'/'
+    local long='lon/'${smhicoords[1]}'/'
     local hostname='https://opendata-download-metfcst.smhi.se/'
     local api='api/category/pmp3g/version/2/geotype/point/'
-    local long='lon/11.923514/'
-    local lat='lat/57.721920/'
     local filename='data.json'
-    url=''$hostname''$api''$long''$lat''$filename''
+    local surl=''$hostname''$api''$long''$lat''$filename''
+    echo $surl
 }
 
 smhi_data() {
-    data=$(
-        curl -s $1 | jq -r '.timeSeries[].parameters|=sort_by(.name) | 
+    local forecast=$(
+        curl -s "$surl" | jq -r '.timeSeries[].parameters|=sort_by(.name) | 
     .timeSeries[] | .validTime, (.parameters[] | 
     select(.name == ("Wsymb2", "pmin", "t", "ws")) | .values[])'
     )
+    echo ${forecast[@]}
 }
 
 style() {
@@ -94,7 +135,13 @@ style() {
     dim='\e[2m'
 }
 
-directory() {
+is_coords() {
+    local coords=($@)
+    local wildcard=${coords[0]}
+    is_float $wildcard
+}
+
+currentdir() {
     dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 }
 
@@ -106,16 +153,25 @@ equals() {
     [ "$1" == "$2" ]
 }
 
-isdigit() {
-    [[ "$1" =~ ^[0-9]*$ ]]
+is_float() {
+    [[ $1 =~ ^[0-9]+\.?[0-9]+$ ]]
 }
 
-isnegative() {
-    [ $1 -lt 0 ]
+is_integer() {
+    [[ "$1" =~ ^[0-9]+$ ]]
 }
 
-isempty() {
-    [ -z $1 ]
+is_empty() {
+    [ -z "$1" ]
 }
 
-smhi $1
+is_zipcode() {
+    local input=$1
+    is_integer $1 && [ ${#input} -eq 5 ]
+}
+
+is_valid() {
+    is_integer $1 && ! [ $1 -lt 1 ] && ! [ $1 -gt 10 ]
+}
+
+smhi $1 $2

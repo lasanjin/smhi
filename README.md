@@ -30,9 +30,19 @@ $ sudo chmod +x ./smhi.sh
 
 2. Run script
 ```
-$ ./smhi.sh $1
+$ ./smhi.sh $1 $2
 ```
+- `$1` 
+  -  *optional*
+  -  forecast
+     -  #days from today
+        -  input `0-9`, default is today's weather
+
 - `$1`
   -  *optional*
-  -  #days from today
-     -  input `0-9`, default is today's weather
+  -  Swedish zipcode
+     -  input `xxxxx` and not `xxx xx`
+        -  examples
+           -  41296 *Chalmers*
+           -  98131 *Kiruna*
+        -  default are 41716 coordinates
