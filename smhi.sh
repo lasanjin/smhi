@@ -28,6 +28,8 @@ smhi() {
     local today=$(date +'%Y-%m-%d')
     local todate=$(date -d "$today+$1 days" +'%s')
     local tmpdate
+    local tmpdesc
+    local symbol
     local length=${#forecast[@]}
 
     for ((i = 0; i < $length; i += 5)); do
@@ -47,19 +49,27 @@ smhi() {
         local ws=${forecast[$((i + 4))]}
 
         if ! equals $date $tmpdate; then
-            local units='\t°C\tm/s\tmm\h\tdesc'
+            local units='\t°C\tm/s\tmm\h\tsymb\tdesc'
             local lang='sv_SE.utf-8'
             local day=$(LC_TIME=$lang date --date "$validTime" +'%A')
 
             echo -e "\n${bold}${green}${day}${default}${units}"
 
             tmpdate=$date
+            tmpdesc=" "
         fi
 
-        local time=$(date --date "$validTime" '+%H:%M')
         local description=$(sed "${Wsymb2}q;d" $dir/Wsymb2SV.txt)
+        if ! equals "$description" "$tmpdesc"; then
+            tmpdesc=$description
+        else
+            description="^"
+        fi
+
+        local symbol=$(sed "${Wsymb2}q;d" $dir/symbols.txt)
+        local time=$(date --date "$validTime" '+%H:%M')
         local head=${dim}$time'\t'${default}${bold}
-        local tail='\t'${blue}${ws}'\t'${pmin}${default}${dim}'\t'${description}${default}
+        local tail='\t'${blue}${ws}'\t'${pmin}${default}${dim}'\t'${symbol}'\t'${description}${default}
 
         if temp 30 $t; then
             echo -e "${head}${red}${t}${tail}"
