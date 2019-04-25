@@ -1,7 +1,7 @@
 ## Description
 Outputs weather forecast in terminal from SMHI api.
 
-<img src="smhi-GIF.gif" width="640">
+<img src="resources/smhi-GIF.gif" width="640">
 
 ## Get jq
 Alt 1

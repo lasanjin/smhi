@@ -59,17 +59,18 @@ smhi() {
             tmpdesc=" "
         fi
 
-        local description=$(sed "${Wsymb2}q;d" $dir/Wsymb2SV.txt)
-        if ! equals "$description" "$tmpdesc"; then
-            tmpdesc=$description
+        local desc=$(sed "${Wsymb2}q;d" $dir/resources/Wsymb2SV.txt)
+        local symbol=${desc%,*}
+
+        if ! equals "$desc" "$tmpdesc"; then
+            tmpdesc=$desc
         else
-            description="^"
+            desc="^"
         fi
 
-        local symbol=$(sed "${Wsymb2}q;d" $dir/symbols.txt)
         local time=$(date --date "$validTime" '+%H:%M')
         local head=${dim}$time'\t'${default}${bold}
-        local tail='\t'${blue}${ws}'\t'${pmin}${default}${dim}'\t'${symbol}'\t'${description}${default}
+        local tail='\t'${blue}${ws}'\t'${pmin}${default}${dim}'\t'${symbol}'\t'${desc##*,}${default}
 
         if temp 30 $t; then
             echo -e "${head}${red}${t}${tail}"
