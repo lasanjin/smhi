@@ -6,15 +6,24 @@ smhi() {
         return 0
     fi
 
+    local descfile='Wsymb2SV.txt'
+    local lang='sv_SE.utf-8'
+    if equals $3 "en"; then
+        descfile='Wsymb2EN.txt'
+        lang='en_US.utf8'
+    fi
+
+    declare local zurl
+    declare local zipcoords
     if ! is_zipcode $2 && ! is_empty $2; then
         echo -e "\nInvalid input\n"
         return 0
+    else
+        zurl=$(zipcode_url $2)
+        zipcoords=$(zipcode_coords $zurl)
     fi
 
-    local zurl=$(zipcode_url $2)
-    local zipcoords=$(zipcode_coords $zurl)
     local coords=$(coordinates $2 ${zipcoords[@]})
-
     if ! is_coords ${coords[@]}; then
         echo -e "\nInvalid zipcode\n"
         return 0
@@ -50,8 +59,7 @@ smhi() {
 
         if ! equals $date $tmpdate; then
             local units='\t°C\tm/s\tmm\h\tsymb\tdesc'
-            local lang='sv_SE.utf-8'
-            local day=$(LC_TIME=$lang date --date "$validTime" +'%A')
+            local day=$(LC_TIME=$lang date --date "$validTime" +'%a')
 
             echo -e "\n${bold}${green}${day}${default}${units}"
 
@@ -59,7 +67,7 @@ smhi() {
             tmpdesc=" "
         fi
 
-        local desc=$(sed "${Wsymb2}q;d" $dir/resources/Wsymb2SV.txt)
+        local desc=$(sed "${Wsymb2}q;d" $dir/resources/$descfile)
         local symbol=${desc%,*}
 
         if ! equals "$desc" "$tmpdesc"; then
@@ -111,7 +119,6 @@ zipcode_url() {
 
 zipcode_coords() {
     local data=$(curl -s $1 | jq -r '.results[] | .lat, .lng')
-    declare -A local coords
     echo $data
 }
 
