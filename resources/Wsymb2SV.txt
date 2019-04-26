@@ -1,27 +1,27 @@
 ☀️,Klart
-🌤️,Nästan klart
-️️⛅,Växlande molnighet
-🌥️,Halvklart
-☁️,Molnigt
+🌤️,Lätt molnighet
+️️⛅,Halvklart
+🌥️,Molnigt
+☁️,Mycket moln
 ️️☁️,Mulet
 🌫,Dimma
-🌦️,Lätta regnskurar
-🌦️,Måttliga regnskurar
-🌦️,Kraftiga regnskurar
+🌦️,Lätt regnskur
+🌦️,Regnskur
+🌦️,Kraftig regnskur
 ⛈️,Åskväder
-🌨️,Lätta regnblandade snöbyar
-🌨️,Måttliga regnblandade snöbyar
-🌨️,Kraftiga regnblandade snöbyar
-❄️,Lätta snöbyar
-❄️,Måttliga snöbyar
-❄️,Kraftiga snöbyar
+🌨️,Lätt regnblandad snöby
+🌨️,Regnblandad snöby
+🌨️,Kraftig regnblandad snöby
+❄️,Lätt snöbyar
+❄️,Snöby
+❄️,Kraftig snöby
 🌧️,Lätt regn
-🌧️,Måttligt regn
+🌧️,Regn
 🌧️,Kraftigt regn
 🌩️,Åska
 🌨️,Lätt regnblandad snö
-🌨️,Måttlig regnblandad snö
+🌨️,Regnblandad snö
 🌨️,Kraftig regnblandad snö
 ❄️,Lätt snöfall
-❄️,Måttligt snöfall
+❄️,Snöfall
 ❄️,Kraftigt snöfall

@@ -6,21 +6,19 @@ smhi() {
         return 0
     fi
 
-    local descfile='Wsymb2SV.txt'
+    local desclang='Wsymb2SV.txt'
     local lang='sv_SE.utf-8'
     if equals $3 "en"; then
-        descfile='Wsymb2EN.txt'
+        desclang='Wsymb2EN.txt'
         lang='en_US.utf8'
     fi
 
-    declare local zurl
-    declare local zipcoords
-    if ! is_zipcode $2 && ! is_empty $2; then
+    if ! is_empty $2 && ! is_zipcode $2; then
         echo -e "\nInvalid input\n"
         return 0
     else
-        zurl=$(zipcode_url $2)
-        zipcoords=$(zipcode_coords $zurl)
+        local zurl=$(zipcode_url $2)
+        local zipcoords=$(zipcode_coords $zurl)
     fi
 
     local coords=$(coordinates $2 ${zipcoords[@]})
@@ -38,7 +36,6 @@ smhi() {
     local todate=$(date -d "$today+$1 days" +'%s')
     local tmpdate
     local tmpdesc
-    local symbol
     local length=${#forecast[@]}
 
     for ((i = 0; i < $length; i += 5)); do
@@ -61,23 +58,25 @@ smhi() {
             local units='\t°C\tm/s\tmm\h\tsymb\tdesc'
             local day=$(LC_TIME=$lang date --date "$validTime" +'%a')
 
-            echo -e "\n${bold}${green}${day}${default}${units}"
+            echo -e "\n${dim} -------------------------------------------${default}"
+            echo -e " ${default}${bold}${green}${day}${default}${units}"
+            echo -e "${dim} -------------------------------------------${default}"
 
             tmpdate=$date
             tmpdesc=" "
         fi
 
-        local desc=$(sed "${Wsymb2}q;d" $dir/resources/$descfile)
+        local desc=$(sed "${Wsymb2}q;d" $dir/resources/$desclang)
         local symbol=${desc%,*}
 
         if ! equals "$desc" "$tmpdesc"; then
             tmpdesc=$desc
         else
-            desc="^"
+            desc="↓"
         fi
 
         local time=$(date --date "$validTime" '+%H:%M')
-        local head=${dim}$time'\t'${default}${bold}
+        local head=' '${dim}$time'\t'${default}${bold}
         local tail='\t'${blue}${ws}'\t'${pmin}${default}${dim}'\t'${symbol}'\t'${desc##*,}${default}
 
         if temp 30 $t; then
@@ -148,7 +147,7 @@ style() {
     green='\e[32m'
     blue='\e[94m'
     yellow='\e[33m'
-    orange='\e[38;5;202m'
+    orange='\e[38;5;208m'
     red='\e[31m'
     dim='\e[2m'
 }
