@@ -35,7 +35,7 @@ $ ./smhi.sh $1 $2 $3
 - `$1` 
   -  *required*
   -  forecast
-     -  #days from today
+     -  #days
         -  input `0-9`, default is today's weather
 
 - `$2`
@@ -43,8 +43,8 @@ $ ./smhi.sh $1 $2 $3
   -  Swedish zipcode
      -  input `xxxxx` and NOT `xxx xx`
         -  examples
-           -  41296 *Chalmers*
-           -  98131 *Kiruna*
+           -  41296
+           -  98131
         -  default are 41716 coordinates
 
 - `$3`

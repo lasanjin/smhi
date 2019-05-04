@@ -32,6 +32,7 @@ smhi() {
     currentdir
     style
 
+    local units='\t°C\tm/s\tmm\h\tsymb\tdesc'
     local today=$(date +'%Y-%m-%d')
     local todate=$(date -d "$today+$1 days" +'%s')
     local tmpdate
@@ -39,7 +40,6 @@ smhi() {
     local length=${#forecast[@]}
 
     for ((i = 0; i < $length; i += 5)); do
-
         local validTime=${forecast[i]}
         local date=$(date --date "$validTime" +'%Y-%m-%d')
         local current=$(date -d "$date" +'%s')
@@ -55,7 +55,6 @@ smhi() {
         local ws=${forecast[$((i + 4))]}
 
         if ! equals $date $tmpdate; then
-            local units='\t°C\tm/s\tmm\h\tsymb\tdesc'
             local day=$(LC_TIME=$lang date --date "$validTime" +'%a')
 
             echo -e "\n${dim} -------------------------------------------${default}"
@@ -75,7 +74,7 @@ smhi() {
             desc="↓"
         fi
 
-        local time=$(date --date "$validTime" '+%H:%M')
+        local time=$(date --date "$validTime" '+%H')
         local head=' '${dim}$time'\t'${default}${bold}
         local tail='\t'${blue}${ws}'\t'${pmin}${default}${dim}'\t'${symbol}'\t'${desc##*,}${default}
 
@@ -97,8 +96,8 @@ coordinates() {
 
     #default coords
     local -A coords=(
-        [lat]=57.721920
-        [long]=11.923514)
+        [lat]=57.715626
+        [long]=11.932365)
 
     if ! is_empty $zipcode; then
         coords[lat]=${tmpcoords[0]}
@@ -133,12 +132,12 @@ smhi_url() {
 }
 
 smhi_data() {
-    local forecast=$(
+    local rawdata=$(
         curl -s "$surl" | jq -r '.timeSeries[].parameters|=sort_by(.name) | 
     .timeSeries[] | .validTime, (.parameters[] | 
     select(.name == ("Wsymb2", "pmin", "t", "ws")) | .values[])'
     )
-    echo ${forecast[@]}
+    echo ${rawdata[@]}
 }
 
 style() {
