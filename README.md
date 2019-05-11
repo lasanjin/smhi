@@ -1,5 +1,5 @@
 ## Description
-Outputs weather forecast in terminal from SMHI api.
+Outputs weather forecast in terminal from SMHI api for location [*Lundby*](https://www.google.com/maps/place/418+71+Lundby/@57.72043,11.9031789,15z/data=!3m1!4b1!4m5!3m4!1s0x464f8cac10ef6b77:0xe2938674a44ad114!8m2!3d57.7204193!4d11.9119337).
 
 <img src="resources/smhi-GIF.gif" width="640">
 
@@ -30,7 +30,7 @@ $ sudo chmod +x ./smhi.sh
 
 2. Run script
 ```
-$ ./smhi.sh $1 $2 $3
+$ ./smhi.sh $1 $2
 ```
 - `$1` 
   -  *required*
@@ -40,15 +40,6 @@ $ ./smhi.sh $1 $2 $3
 
 - `$2`
   -  *optional*
-  -  Swedish zipcode
-     -  input `xxxxx` and NOT `xxx xx`
-        -  examples
-           -  41296
-           -  98131
-        -  default are 41716 coordinates
-
-- `$3`
-  -  *optional*
-  -  requires `$2`
+  -  requires `$1`
   -  language
      -  input `en` for English, default is Swedish

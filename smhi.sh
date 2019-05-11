@@ -2,32 +2,18 @@
 
 smhi() {
     if ! is_valid $1; then
-        echo -e "\nInvalid input\n"
+        echo -e "Invalid input"
         return 0
     fi
 
     local desclang='Wsymb2SV.txt'
     local lang='sv_SE.utf-8'
-    if equals $3 "en"; then
+    if equals $2 "en"; then
         desclang='Wsymb2EN.txt'
         lang='en_US.utf8'
     fi
 
-    if ! is_empty $2 && ! is_zipcode $2; then
-        echo -e "\nInvalid input\n"
-        return 0
-    else
-        local zurl=$(zipcode_url $2)
-        local zipcoords=$(zipcode_coords $zurl)
-    fi
-
-    local coords=$(coordinates $2 ${zipcoords[@]})
-    if ! is_coords ${coords[@]}; then
-        echo -e "\nInvalid zipcode\n"
-        return 0
-    fi
-
-    local surl=$(smhi_url ${coords[@]})
+    local surl=$(smhi_url)
     read -r -a forecast -d '' <<<"$(smhi_data $surl)"
     currentdir
     style
@@ -57,9 +43,9 @@ smhi() {
         if ! equals $date $tmpdate; then
             local day=$(LC_TIME=$lang date --date "$validTime" +'%a')
 
-            echo -e "\n${dim} -------------------------------------------${default}"
-            echo -e " ${default}${bold}${green}${day}${default}${units}"
-            echo -e "${dim} -------------------------------------------${default}"
+            echo -e "\n${DIM} -------------------------------------------${DEFAULT}"
+            echo -e " ${DEFAULT}${BOLD}${GREEN}${day}${DEFAULT}${units}"
+            echo -e "${DIM} -------------------------------------------${DEFAULT}"
 
             tmpdate=$date
             tmpdesc=" "
@@ -75,55 +61,24 @@ smhi() {
         fi
 
         local time=$(date --date "$validTime" '+%H')
-        local head=' '${dim}$time'\t'${default}${bold}
-        local tail='\t'${blue}${ws}'\t'${pmin}${default}${dim}'\t'${symbol}'\t'${desc##*,}${default}
+        local head=' '${DIM}$time'\t'${DEFAULT}${BOLD}
+        local tail='\t'${BLUE}${ws}'\t'${pmin}${DEFAULT}${DIM}'\t'${symbol}'\t'${desc##*,}${DEFAULT}
 
         if temp 30 $t; then
-            echo -e "${head}${red}${t}${tail}"
+            echo -e "${head}${RED}${t}${tail}"
         elif temp 25 $t; then
-            echo -e "${head}${orange}${t}${tail}"
+            echo -e "${head}${ORANGE}${t}${tail}"
         elif temp 20 $t; then
-            echo -e "${head}${yellow}${t}${tail}"
+            echo -e "${head}${YELLOW}${t}${tail}"
         else
-            echo -e "${head}${blue}${t}${tail}"
+            echo -e "${head}${BLUE}${t}${tail}"
         fi
     done
 }
 
-coordinates() {
-    local zipcode=$1 && shift
-    local tmpcoords=($@)
-
-    #default coords
-    local -A coords=(
-        [lat]=57.715626
-        [long]=11.932365)
-
-    if ! is_empty $zipcode; then
-        coords[lat]=${tmpcoords[0]}
-        coords[long]=${tmpcoords[1]}
-    fi
-
-    echo ${coords[@]}
-}
-
-zipcode_url() {
-    local hostname='http://yourmoneyisnowmymoney.com/'
-    local api='api/zipcodes/?zipcode='$1''
-    local filename='?response=json'
-    local zurl=''$hostname''$api''$filename''
-    echo $zurl
-}
-
-zipcode_coords() {
-    local data=$(curl -s $1 | jq -r '.results[] | .lat, .lng')
-    echo $data
-}
-
 smhi_url() {
-    local smhicoords=($@)
-    local lat='lat/'${smhicoords[0]}'/'
-    local long='lon/'${smhicoords[1]}'/'
+    local lat='lat/57.715626/'
+    local long='lon/11.932365/'
     local hostname='https://opendata-download-metfcst.smhi.se/'
     local api='api/category/pmp3g/version/2/geotype/point/'
     local filename='data.json'
@@ -141,53 +96,26 @@ smhi_data() {
 }
 
 style() {
-    default='\e[0m'
-    bold='\e[1m'
-    green='\e[32m'
-    blue='\e[94m'
-    yellow='\e[33m'
-    orange='\e[38;5;208m'
-    red='\e[31m'
-    dim='\e[2m'
+    DEFAULT='\e[0m'
+    BOLD='\e[1m'
+    GREEN='\e[32m'
+    BLUE='\e[94m'
+    YELLOW='\e[33m'
+    ORANGE='\e[38;5;208m'
+    RED='\e[31m'
+    DIM='\e[2m'
 }
 
-is_coords() {
-    local coords=($@)
-    local wildcard=${coords[0]}
-    is_float $wildcard
-}
+currentdir() { dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"; }
 
-currentdir() {
-    dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-}
+temp() { [ 1 -eq $(echo "$2 >= $1" | bc) ]; }
 
-temp() {
-    [ 1 -eq $(echo "$2 >= $1" | bc) ]
-}
+equals() { [ "$1" == "$2" ]; }
 
-equals() {
-    [ "$1" == "$2" ]
-}
+is_integer() { [[ "$1" =~ ^[0-9]+$ ]]; }
 
-is_float() {
-    [[ $1 =~ ^[0-9]+\.?[0-9]+$ ]]
-}
+is_empty() { [ -z "$1" ]; }
 
-is_integer() {
-    [[ "$1" =~ ^[0-9]+$ ]]
-}
-
-is_empty() {
-    [ -z "$1" ]
-}
-
-is_zipcode() {
-    local input=$1
-    is_integer $1 && [ ${#input} -eq 5 ]
-}
-
-is_valid() {
-    is_integer $1 && ! [ $1 -lt 1 ] && ! [ $1 -gt 10 ]
-}
+is_valid() { is_integer $1 && ! [ $1 -lt 1 ] && ! [ $1 -gt 10 ]; }
 
 smhi $1 $2
