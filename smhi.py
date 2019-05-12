@@ -3,8 +3,6 @@
 
 from datetime import datetime
 from datetime import timedelta
-import linecache
-import collections
 import urllib2
 import locale
 import json
@@ -14,8 +12,8 @@ locations = {"Gothenburg": (11.986500, 57.696991),
              "Chalmers": (11.973600, 57.689701),
              "Lundby": (11.932365, 57.715626)}
 
-parameters = collections.OrderedDict(
-    {"validTime": None, "t": None, "ws": None, "pmin": None, "Wsymb2": None})
+parameters = {"validTime": None, "t": None,
+              "ws": None, "pmin": None, "Wsymb2": None}
 
 
 def forecast():
@@ -24,7 +22,8 @@ def forecast():
     end_date = get_date(num_of_days)
     reference_time, forecast = get_data("Gothenburg")
 
-    print "\n" + reference_time + style.DIM + " (last updated)" + style.DEFAULT
+    print "\n " + reference_time + style.DIM + \
+        " (last updated)" + style.DEFAULT
     print_data(forecast, end_date)
     print
 
@@ -103,7 +102,7 @@ def print_wsymb(tmp_desc, wsymb):
 
 def print_parameters(timestamp, time, tmp_desc):
     for key in ["t", "ws", "pmin"]:
-        print style.BLUE + str(timestamp[key]) + "\t" + style.DEFAULT,
+        print style.BLUE + str(timestamp[key]) + style.DEFAULT + "\t",
 
     wsymb = get_wsymb(timestamp["Wsymb2"])
     tmp_desc = print_wsymb(tmp_desc, wsymb)
