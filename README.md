@@ -1,6 +1,7 @@
 ## Description
 Outputs weather forecast data from SMHI api in terminal.
 
+<img src="resources/smhi-py.gif" width="500">
 
 ## Install
 ```
