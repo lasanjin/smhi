@@ -101,8 +101,6 @@ def print_wsymb(tmp_desc, wsymb):
 
 
 def print_parameters(timestamp, time, tmp_desc):
-    print style.DIM + time + "\t" + style.DEFAULT,
-
     for key in ["t", "ws", "pmin"]:
         print style.BLUE + str(timestamp[key]) + "\t" + style.DEFAULT,
 
@@ -126,7 +124,9 @@ def print_data(forecast, end_date):
 
         if date != tmp_date:
             tmp_date = print_header(date)
+            tmp_desc = None
 
+        print style.DIM + time + "\t" + style.DEFAULT,
         tmp_desc = print_parameters(timestamp, time, tmp_desc)
 
 
