@@ -22,7 +22,7 @@ def forecast():
     end_date = get_date(num_of_days)
     reference_time, forecast = get_data("Gothenburg")
 
-    print "\n " + reference_time + style.DIM + \
+    print "\n" + reference_time + style.DIM + \
         " (last updated)" + style.DEFAULT
     print_data(forecast, end_date)
     print
