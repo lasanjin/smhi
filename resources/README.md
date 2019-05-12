@@ -1,7 +1,7 @@
 ## Description
 Outputs weather forecast in terminal from SMHI api for location [*Lundby*](https://www.google.com/maps/place/418+71+Lundby/@57.72043,11.9031789,15z/data=!3m1!4b1!4m5!3m4!1s0x464f8cac10ef6b77:0xe2938674a44ad114!8m2!3d57.7204193!4d11.9119337)
 
-<img src="smhi-GIF.gif" width="640">
+<img src="smhi-sh.gif" width="500">
 
 ## Get jq
 Alt 1
