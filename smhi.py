@@ -79,7 +79,7 @@ def split_timestamp(timestamp):
 
 
 def print_header(date):
-    units = "\t°C\t m/s\t mm\h\t symb\tdesc"
+    units = "\t°C\tm/s\tmm\h\tsymb\tdesc"
     lines = style.DIM + "-"*44 + style.DEFAULT
 
     print "\n" + lines
