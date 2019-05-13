@@ -38,7 +38,7 @@ def get_data(dest):
     ).read())
 
     time = rawdata['referenceTime']
-    reference_time = format_time(time, '%y-%m-%d %H:%M')
+    reference_time = format_time(time, '%H:%M')
 
     data = []
     for timestamp in rawdata['timeSeries']:
@@ -58,7 +58,8 @@ def get_data(dest):
 
 def get_date(num_of_days):
     today = datetime.today()
-    return (today + timedelta(days=num_of_days)).strftime('%y-%m-%d')
+    return (today +
+            timedelta(days=num_of_days)).strftime('%y-%m-%d')
 
 
 def format_time(time, format):
@@ -82,7 +83,8 @@ def print_header(date):
     lines = style.DIM + "-"*44 + style.DEFAULT
 
     print "\n" + lines
-    print style.BOLD + style.GREEN + format_date(date) + style.DEFAULT + units
+    print style.BOLD + style.GREEN + format_date(date) \
+        + style.DEFAULT + units
     print lines
 
     return date
@@ -102,7 +104,8 @@ def print_wsymb(tmp_desc, wsymb):
 
 def print_parameters(timestamp, time, tmp_desc):
     for key in ["t", "ws", "pmin"]:
-        print style.BLUE + str(timestamp[key]) + style.DEFAULT + "\t",
+        print style.BLUE + str(timestamp[key]) \
+            + style.DEFAULT + "\t",
 
     wsymb = get_wsymb(timestamp["Wsymb2"])
     tmp_desc = print_wsymb(tmp_desc, wsymb)
