@@ -32,7 +32,7 @@ def forecast():
     print
 
 
-def default_coords():
+def default_LOCATION():
     return locations["Gothenburg"]
 
 
@@ -41,7 +41,7 @@ def search():
     rawdata = gmaps_response(params)
 
     if rawdata == None:
-        return default_coords()
+        return default_LOCATION()
 
     coords = get_coords(rawdata)
 
@@ -64,7 +64,7 @@ def get_coords(rawdata):
         index = get_index(match)
 
         if index == None:
-            return default_coords()
+            return default_LOCATION()
 
         length = index + 9
         wildcard = rawdata[index:length]
@@ -74,7 +74,7 @@ def get_coords(rawdata):
         if isinstance(c, float) and 7 <= len(coord) <= 9:
             coords.append(coord)
         else:
-            return default_coords()
+            return default_LOCATION()
 
     return coords
 
@@ -101,7 +101,7 @@ def smhi_response(coords):
 def get_data(coords):
     res = smhi_response(coords)
     if res == None:
-        res = smhi_response(default_coords())
+        res = smhi_response(default_LOCATION())
 
     rawdata = json.loads(res.read())
     return parse_data(rawdata)
@@ -192,7 +192,7 @@ def split_timestamp(timestamp):
 def print_coords(coords):
     if coords in locations.values():
         print constant.PIN + constant.NOT_FOUND + \
-            constant.DIM + constant.DEFAULT_coords + constant.DEFAULT
+            constant.DIM + constant.DEFAULT_LOCATION + constant.DEFAULT
     else:
         cs = str(coords[1]) + ", " + str(coords[0])
 
@@ -281,7 +281,7 @@ class constant():
     ARROW_DOWN = "↓"
     LINE = "-"
     NOT_FOUND = 'No data in location'
-    DEFAULT_coords = '  (default Gothenburg)'
+    DEFAULT_LOCATION = '  (default Gothenburg)'
     TAB = '\t'
     PLUS = "+"
     PREFIX = '\x1b]8;;'
