@@ -49,8 +49,8 @@ def gmaps_response(params):
 
 def get_coords(rawdata):
     coords = []
-    for i in ["lon", "lat"]:
-        match = find_coord(rawdata, i)
+    for param in ["lon", "lat"]:
+        match = find_coord(rawdata, param)
         index = get_index(match)
 
         if index == None:
@@ -61,12 +61,22 @@ def get_coords(rawdata):
         c = to_float(wildcard)
         coord = str(c)
 
-        if isinstance(c, float) and 7 <= len(coord) <= 9:
+        if is_valid_coord(param, c, coord):
             coords.append(coord)
         else:
             return locations["Gothenburg"]
 
     return coords
+
+
+def is_valid_coord(param, c, coord):
+    if isinstance(c, float) and 7 <= len(coord) <= 9:
+        if param == "lon":
+            return 10.0 < c < 24.2
+        elif param == "lat":
+            return 55.2 < c < 69.0
+    else:
+        return False
 
 
 def find_coord(rawdata, coord):
