@@ -25,26 +25,36 @@ def forecast():
     coords = search()
     reference_time, forecast = get_data(coords)
 
-    print_coords(coords)
+    print
     print_reference_time(reference_time)
+    print_coords(coords)
     print_data(forecast, end_date)
     print
+
+
+def default_coords():
+    return locations["Gothenburg"]
 
 
 def search():
     params = get_params()
     rawdata = gmaps_response(params)
+
+    if rawdata == None:
+        return default_coords()
+
     coords = get_coords(rawdata)
 
     return coords
 
 
 def gmaps_response(params):
-    url = 'https://www.google.com/maps/place/'
     for param in params:
-        url += param + "+"
-
-    return urllib2.urlopen(url).read()
+        constant.G_URL += param + constant.PLUS
+    try:
+        return urllib2.urlopen(constant.G_URL).read()
+    except urllib2.HTTPError:
+        return None
 
 
 def get_coords(rawdata):
@@ -54,29 +64,19 @@ def get_coords(rawdata):
         index = get_index(match)
 
         if index == None:
-            return locations["Gothenburg"]
+            return default_coords()
 
         length = index + 9
         wildcard = rawdata[index:length]
         c = to_float(wildcard)
         coord = str(c)
 
-        if is_valid_coord(param, c, coord):
+        if isinstance(c, float) and 7 <= len(coord) <= 9:
             coords.append(coord)
         else:
-            return locations["Gothenburg"]
+            return default_coords()
 
     return coords
-
-
-def is_valid_coord(param, c, coord):
-    if isinstance(c, float) and 7 <= len(coord) <= 9:
-        if param == "lon":
-            return 10.0 < c < 24.2
-        elif param == "lat":
-            return 55.2 < c < 69.0
-    else:
-        return False
 
 
 def find_coord(rawdata, coord):
@@ -86,15 +86,28 @@ def find_coord(rawdata, coord):
     return re.search(r''+reg[coord], rawdata)
 
 
-def get_data(coords):
-    rawdata = json.loads(urllib2.urlopen(
-        'https://opendata-download-metfcst.smhi.se/'
-        'api/category/pmp3g/version/2/geotype/point/'
-        'lon/' + coords[0] + '/'
-        'lat/' + coords[1] + '/'
-        'data.json'
-    ).read())
+def smhi_response(coords):
+    try:
+        return urllib2.urlopen(
+            constant.S_URL +
+            'lon/' + coords[0] + '/'
+            'lat/' + coords[1] + '/'
+            'data.json'
+        )
+    except urllib2.HTTPError:
+        return None
 
+
+def get_data(coords):
+    res = smhi_response(coords)
+    if res == None:
+        res = smhi_response(default_coords())
+
+    rawdata = json.loads(res.read())
+    return parse_data(rawdata)
+
+
+def parse_data(rawdata):
     time = rawdata['referenceTime']
     reference_time = format_time(time, '%H:%M')
 
@@ -177,58 +190,56 @@ def split_timestamp(timestamp):
 
 
 def print_coords(coords):
-    print
-    if coords[0] in locations.values():
-        print style.PIN + "Location not found" + \
-            style.DIM + " (default Gothenburg)" + style.DEFAULT
+    if coords in locations.values():
+        print constant.PIN + constant.NOT_FOUND + \
+            constant.DIM + constant.DEFAULT_coords + constant.DEFAULT
     else:
-        link = 'https://www.google.com/maps/place/'
         cs = str(coords[1]) + ", " + str(coords[0])
 
         # hyperlink
-        print style.PIN +  \
-            '\x1b]8;;' + link + cs + '//\aLocation link\x1b]8;;\a' + \
-            style.DIM + "      [" + cs + "]" + style.DEFAULT
+        print \
+            constant.PIN + \
+            constant.PREFIX + constant.G_URL + cs + constant.POSTFIX + \
+            constant.DIM + "      [" + cs + "]" + constant.DEFAULT
 
 
 def print_reference_time(reference_time):
-    print style.TIME + reference_time + style.DIM + \
-        style.TAB + style.UPDATE + style.DEFAULT
+    print constant.TIME + reference_time
 
 
 def print_header(date):
-    lines = style.DIM + style.LINE*44 + style.DEFAULT
+    lines = constant.DIM + constant.LINE*44 + constant.DEFAULT
     units = \
-        style.TAB + '°C' + \
-        style.TAB + 'm/s' + \
-        style.TAB + 'mm\h' + \
-        style.TAB + 'symb' + \
-        style.TAB + 'desc'
+        constant.TAB + '°C' + \
+        constant.TAB + 'm/s' + \
+        constant.TAB + 'mm\h' + \
+        constant.TAB + 'symb' + \
+        constant.TAB + 'desc'
 
     print "\n" + lines
-    print style.BOLD + style.GREEN + format_date(date) \
-        + style.DEFAULT + units
+    print constant.BOLD + constant.GREEN + format_date(date) \
+        + constant.DEFAULT + units
     print lines
 
     return date
 
 
 def print_wsymb(tmp_desc, wsymb):
-    print wsymb[0] + style.TAB,
+    print wsymb[0] + constant.TAB,
     desc = wsymb[1]
 
     if tmp_desc != desc:
-        print style.DIM + desc + style.DEFAULT,
+        print constant.DIM + desc + constant.DEFAULT,
     else:
-        print style.DIM + style.DOWN + style.DEFAULT,
+        print constant.DIM + constant.ARROW_DOWN + constant.DEFAULT,
 
     return desc
 
 
 def print_parameters(timestamp, time, tmp_desc):
     for key in ["t", "ws", "pmin"]:
-        print style.BLUE + str(timestamp[key]) \
-            + style.DEFAULT + style.TAB,
+        print constant.BLUE + str(timestamp[key]) \
+            + constant.DEFAULT + constant.TAB,
 
     wsymb = get_wsymb(timestamp["Wsymb2"])
     tmp_desc = print_wsymb(tmp_desc, wsymb)
@@ -251,7 +262,7 @@ def print_data(forecast, end_date):
             tmp_date = print_header(date)
             tmp_desc = None
 
-        print style.DIM + time + style.TAB + style.DEFAULT,
+        print constant.DIM + time + constant.TAB + constant.DEFAULT,
         tmp_desc = print_parameters(timestamp, time, tmp_desc)
 
 
@@ -259,7 +270,7 @@ def set_locale(code):
     locale.setlocale(locale.LC_ALL, code)
 
 
-class style():
+class constant():
     DEFAULT = '\033[0m'
     GREEN = '\033[92m'
     BLUE = '\033[94m'
@@ -267,10 +278,17 @@ class style():
     DIM = '\033[2m'
     TIME = '⏱️  '
     PIN = '📍 '
-    DOWN = "↓"
+    ARROW_DOWN = "↓"
     LINE = "-"
-    UPDATE = '      (Last updated)'
+    NOT_FOUND = 'No data in location'
+    DEFAULT_coords = '  (default Gothenburg)'
     TAB = '\t'
+    PLUS = "+"
+    PREFIX = '\x1b]8;;'
+    POSTFIX = '//\aLocation link' + PREFIX + '\a'
+    G_URL = 'https://www.google.com/maps/place/'
+    S_URL = 'https://opendata-download-metfcst.smhi.se/' \
+            'api/category/pmp3g/version/2/geotype/point/'
 
 
 def get_wsymb(arg):
