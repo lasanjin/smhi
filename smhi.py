@@ -57,11 +57,12 @@ def get_coords(rawdata):
             return locations["Gothenburg"]
 
         length = index + 9
-        c = rawdata[index:length]
-        coord = to_float(c)
+        wildcard = rawdata[index:length]
+        c = to_float(wildcard)
+        coord = str(c)
 
-        if isinstance(coord, float) and 5 <= len(str(coord)) <= 9:
-            coords.append(str(coord))
+        if isinstance(c, float) and 7 <= len(coord) <= 9:
+            coords.append(coord)
         else:
             return locations["Gothenburg"]
 
