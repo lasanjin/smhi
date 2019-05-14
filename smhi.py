@@ -26,9 +26,7 @@ def forecast():
     reference_time, forecast = get_data(coords)
 
     print_coords(coords)
-    print style.TIME + reference_time + style.DIM + \
-        style.UPDATE + style.DEFAULT
-
+    print_reference_time(reference_time)
     print_data(forecast, end_date)
     print
 
@@ -51,16 +49,16 @@ def gmaps_response(params):
 
 def get_coords(rawdata):
     coords = []
-    for ind, i in enumerate(["lon", "lat"]):
+    for i in ["lon", "lat"]:
         match = find_coord(rawdata, i)
-
         index = get_index(match)
+
         if index == None:
             return locations["Gothenburg"]
 
         length = index + 9
-        ans = rawdata[index:length]
-        coord = to_float(ans)
+        c = rawdata[index:length]
+        coord = to_float(c)
 
         if isinstance(coord, float) and 5 <= len(str(coord)) <= 9:
             coords.append(str(coord))
@@ -176,15 +174,25 @@ def print_coords(coords):
         link = 'https://www.google.com/maps/place/'
         cs = str(coords[1]) + ", " + str(coords[0])
 
-        #hyperlink
+        # hyperlink
         print style.PIN +  \
             '\x1b]8;;' + link + cs + '//\aLocation link\x1b]8;;\a' + \
             style.DIM + "      [" + cs + "]" + style.DEFAULT
 
 
+def print_reference_time(reference_time):
+    print style.TIME + reference_time + style.DIM + \
+        style.TAB + style.UPDATE + style.DEFAULT
+
+
 def print_header(date):
-    units = "\t°C\tm/s\tmm\h\tsymb\tdesc"
     lines = style.DIM + style.LINE*44 + style.DEFAULT
+    units = \
+        style.TAB + '°C' + \
+        style.TAB + 'm/s' + \
+        style.TAB + 'mm\h' + \
+        style.TAB + 'symb' + \
+        style.TAB + 'desc'
 
     print "\n" + lines
     print style.BOLD + style.GREEN + format_date(date) \
@@ -195,7 +203,7 @@ def print_header(date):
 
 
 def print_wsymb(tmp_desc, wsymb):
-    print wsymb[0] + "\t",
+    print wsymb[0] + style.TAB,
     desc = wsymb[1]
 
     if tmp_desc != desc:
@@ -209,7 +217,7 @@ def print_wsymb(tmp_desc, wsymb):
 def print_parameters(timestamp, time, tmp_desc):
     for key in ["t", "ws", "pmin"]:
         print style.BLUE + str(timestamp[key]) \
-            + style.DEFAULT + "\t",
+            + style.DEFAULT + style.TAB,
 
     wsymb = get_wsymb(timestamp["Wsymb2"])
     tmp_desc = print_wsymb(tmp_desc, wsymb)
@@ -232,7 +240,7 @@ def print_data(forecast, end_date):
             tmp_date = print_header(date)
             tmp_desc = None
 
-        print style.DIM + time + "\t" + style.DEFAULT,
+        print style.DIM + time + style.TAB + style.DEFAULT,
         tmp_desc = print_parameters(timestamp, time, tmp_desc)
 
 
@@ -250,7 +258,8 @@ class style():
     PIN = '📍 '
     DOWN = "↓"
     LINE = "-"
-    UPDATE = '\t      (Last updated)'
+    UPDATE = '      (Last updated)'
+    TAB = '\t'
 
 
 def get_wsymb(arg):
