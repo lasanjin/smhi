@@ -7,10 +7,10 @@ import urllib2
 import locale
 import json
 import sys
+import re
 
-locations = {"Gothenburg": (11.986500, 57.696991),
-             "Chalmers": (11.973600, 57.689701),
-             "Lundby": (11.932365, 57.715626)}
+locations = {"Gothenburg": ("11.986500", "57.696991"),
+             "Chalmers": ("11.973600", "57.689701")}
 
 parameters = {"validTime": None, "t": None,
               "ws": None, "pmin": None, "Wsymb2": None}
@@ -18,22 +18,71 @@ parameters = {"validTime": None, "t": None,
 
 def forecast():
     set_locale("sv_SE.utf-8")
-    num_of_days = get_param()
-    end_date = get_date(num_of_days)
-    reference_time, forecast = get_data("Gothenburg")
 
-    print "\n" + reference_time + style.DIM + \
-        " (last updated)" + style.DEFAULT
+    num_of_days = get_time_interval()
+    end_date = to_date(num_of_days)
+
+    coords = search()
+    reference_time, forecast = get_data(coords)
+
+    print_coords(coords)
+    print style.TIME + reference_time + style.DIM + \
+        style.UPDATE + style.DEFAULT
+
     print_data(forecast, end_date)
     print
 
 
-def get_data(dest):
+def search():
+    params = get_params()
+    rawdata = gmaps_response(params)
+    coords = get_coords(rawdata)
+
+    return coords
+
+
+def gmaps_response(params):
+    url = 'https://www.google.com/maps/place/'
+    for param in params:
+        url += param + "+"
+
+    return urllib2.urlopen(url).read()
+
+
+def get_coords(rawdata):
+    coords = []
+    for ind, i in enumerate(["lon", "lat"]):
+        match = find_coord(rawdata, i)
+
+        index = get_index(match)
+        if index == None:
+            return locations["Gothenburg"]
+
+        length = index + 9
+        ans = rawdata[index:length]
+        coord = to_float(ans)
+
+        if isinstance(coord, float) and 5 <= len(str(coord)) <= 9:
+            coords.append(str(coord))
+        else:
+            return locations["Gothenburg"]
+
+    return coords
+
+
+def find_coord(rawdata, coord):
+    reg = {"lat": '(?<![0-9])[5-6][0-9]\.\d+',
+           "lon": '(?<![0-9])[1-2][0-9]\.\d+'}
+
+    return re.search(r''+reg[coord], rawdata)
+
+
+def get_data(coords):
     rawdata = json.loads(urllib2.urlopen(
         'https://opendata-download-metfcst.smhi.se/'
         'api/category/pmp3g/version/2/geotype/point/'
-        'lon/' + str(locations[dest][0]) + '/'
-        'lat/' + str(locations[dest][1]) + '/'
+        'lon/' + coords[0] + '/'
+        'lat/' + coords[1] + '/'
         'data.json'
     ).read())
 
@@ -56,10 +105,50 @@ def get_data(dest):
     return reference_time, data
 
 
-def get_date(num_of_days):
+def get_index(match):
+    try:
+        return match.start()
+    except AttributeError:
+        return None
+
+
+def to_date(num_of_days):
     today = datetime.today()
     return (today +
             timedelta(days=num_of_days)).strftime('%y-%m-%d')
+
+
+def to_int(param):
+    try:
+        return int(param)
+    except ValueError:
+        return 1
+
+
+def to_float(param):
+    try:
+        return float(param)
+    except ValueError:
+        return 1
+
+
+def get_time_interval():
+    try:
+        param = sys.argv[1:][0]
+        interval = to_int(param)
+        if 0 < interval:
+            return interval
+
+        return 1
+    except IndexError:
+        return 1
+
+
+def get_params():
+    try:
+        return sys.argv[2:]
+    except IndexError:
+        return [""]
 
 
 def format_time(time, format):
@@ -78,9 +167,24 @@ def split_timestamp(timestamp):
     return date, time
 
 
+def print_coords(coords):
+    print
+    if coords[0] in locations.values():
+        print style.PIN + "Location not found" + \
+            style.DIM + " (default Gothenburg)" + style.DEFAULT
+    else:
+        link = 'https://www.google.com/maps/place/'
+        cs = str(coords[1]) + ", " + str(coords[0])
+
+        #hyperlink
+        print style.PIN +  \
+            '\x1b]8;;' + link + cs + '//\aLocation link\x1b]8;;\a' + \
+            style.DIM + "      [" + cs + "]" + style.DEFAULT
+
+
 def print_header(date):
     units = "\t°C\tm/s\tmm\h\tsymb\tdesc"
-    lines = style.DIM + "-"*44 + style.DEFAULT
+    lines = style.DIM + style.LINE*44 + style.DEFAULT
 
     print "\n" + lines
     print style.BOLD + style.GREEN + format_date(date) \
@@ -97,7 +201,7 @@ def print_wsymb(tmp_desc, wsymb):
     if tmp_desc != desc:
         print style.DIM + desc + style.DEFAULT,
     else:
-        print style.DIM + "↓" + style.DEFAULT,
+        print style.DIM + style.DOWN + style.DEFAULT,
 
     return desc
 
@@ -132,25 +236,6 @@ def print_data(forecast, end_date):
         tmp_desc = print_parameters(timestamp, time, tmp_desc)
 
 
-def is_int(param):
-    try:
-        int(param)
-        return True
-    except ValueError:
-        return False
-
-
-def get_param():
-    try:
-        param = sys.argv[1:][0]
-        if is_int(param):
-            if 0 < param:
-                return int(param)
-        return 0
-    except IndexError:
-        return 1
-
-
 def set_locale(code):
     locale.setlocale(locale.LC_ALL, code)
 
@@ -161,6 +246,11 @@ class style():
     BLUE = '\033[94m'
     BOLD = "\033[1m"
     DIM = '\033[2m'
+    TIME = '⏱️  '
+    PIN = '📍 '
+    DOWN = "↓"
+    LINE = "-"
+    UPDATE = '\t      (Last updated)'
 
 
 def get_wsymb(arg):
