@@ -1,7 +1,7 @@
 ## Description
   + Outputs weather forecast data from SMHI api in terminal
   + Accepts parameters for specific location ( see [*How to run*](##How-to-run "Instructions") )
-  + If Google fails to find location a default location (current location or Gothenburg) is entered
+  + If coordinates are invalid, or if Google fails to find location, a default location (current location or Gothenburg) is entered
 
 <img src="resources/smhi-py.gif" width="500">
 
