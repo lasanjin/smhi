@@ -32,16 +32,12 @@ def forecast():
     print
 
 
-def default_LOCATION():
-    return locations["Gothenburg"]
-
-
 def search():
     params = get_params()
     rawdata = gmaps_response(params)
 
     if rawdata == None:
-        return default_LOCATION()
+        return default_location()
 
     coords = get_coords(rawdata)
 
@@ -64,7 +60,7 @@ def get_coords(rawdata):
         index = get_index(match)
 
         if index == None:
-            return default_LOCATION()
+            return default_location()
 
         length = index + 9
         wildcard = rawdata[index:length]
@@ -74,7 +70,7 @@ def get_coords(rawdata):
         if isinstance(c, float) and 7 <= len(coord) <= 9:
             coords.append(coord)
         else:
-            return default_LOCATION()
+            return default_location()
 
     return coords
 
@@ -101,7 +97,7 @@ def smhi_response(coords):
 def get_data(coords):
     res = smhi_response(coords)
     if res == None:
-        res = smhi_response(default_LOCATION())
+        res = smhi_response(default_location())
 
     rawdata = json.loads(res.read())
     return parse_data(rawdata)
@@ -125,6 +121,10 @@ def parse_data(rawdata):
                 values[key] = parameter['values'][0]
 
     return reference_time, data
+
+
+def default_location():
+    return locations["Gothenburg"]
 
 
 def get_index(match):
@@ -200,7 +200,8 @@ def print_coords(coords):
         print \
             constant.PIN + \
             constant.PREFIX + constant.G_URL + cs + constant.POSTFIX + \
-            constant.DIM + "      [" + cs + "]" + constant.DEFAULT
+            constant.DIM + constant.TAB + \
+            "      [" + cs + "]" + constant.DEFAULT
 
 
 def print_reference_time(reference_time):
@@ -280,12 +281,12 @@ class constant():
     PIN = '📍 '
     ARROW_DOWN = "↓"
     LINE = "-"
-    NOT_FOUND = 'No data in location'
-    DEFAULT_LOCATION = '  (default Gothenburg)'
+    NOT_FOUND = 'No data for location'
+    DEFAULT_LOCATION = ' (default Gothenburg)'
     TAB = '\t'
     PLUS = "+"
     PREFIX = '\x1b]8;;'
-    POSTFIX = '//\aLocation link' + PREFIX + '\a'
+    POSTFIX = '//\aLocation' + PREFIX + '\a'
     G_URL = 'https://www.google.com/maps/place/'
     S_URL = 'https://opendata-download-metfcst.smhi.se/' \
             'api/category/pmp3g/version/2/geotype/point/'

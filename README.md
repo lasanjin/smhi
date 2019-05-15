@@ -1,7 +1,16 @@
 ## Description
-  + Outputs weather forecast data from SMHI api in terminal
+  + Outputs weather forecast data from SMHI API in terminal
+  + Displays
+    + ⏱️ Last time SMHI updated the forecast
+    + 📍 Link to location on *Google Maps* and its coordinates
+  + Obtains following data from API
+    + Temperature
+    + Wind
+    + Minimum rain
+    + Description of weather
+      + Matching symbol was added besides the API
   + Accepts parameters for specific location ( see [*How to run*](##How-to-run "Instructions") )
-  + If coordinates are invalid, or if Google fails to find location, a default location (current location or Gothenburg) is entered
+  + If coordinates are invalid, or if Google fails to find location, a default location (current location or Gothenburg) is set
 
 <img src="resources/smhi-py.gif" width="500">
 
