@@ -200,8 +200,7 @@ def print_coords(coords):
         print \
             constant.PIN + \
             constant.PREFIX + constant.G_URL + cs + constant.POSTFIX + \
-            constant.DIM + constant.TAB + \
-            "      [" + cs + "]" + constant.DEFAULT
+            constant.DIM + " (" + cs + ")" + constant.DEFAULT
 
 
 def print_reference_time(reference_time):
