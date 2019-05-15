@@ -15,6 +15,12 @@ locations = {"Gothenburg": ("11.986500", "57.696991"),
 parameters = {"validTime": None, "t": None,
               "ws": None, "pmin": None, "Wsymb2": None}
 
+print_order = [
+    ["Wsymb2", 'symb'],
+    ["t", '°C'],
+    ["ws", 'm/s'],
+    ["pmin", 'mm\h']]
+
 
 def forecast():
     set_locale("sv_SE.utf-8")
@@ -207,14 +213,21 @@ def print_reference_time(reference_time):
     print constant.TIME + reference_time
 
 
+def get_units():
+    units = ""
+
+    for u in print_order:
+        units += constant.TAB + u[1]
+
+    units += constant.TAB + 'desc'
+
+    return units
+
+
 def print_header(date):
-    lines = constant.DIM + constant.LINE*44 + constant.DEFAULT
-    units = \
-        constant.TAB + '°C' + \
-        constant.TAB + 'm/s' + \
-        constant.TAB + 'mm\h' + \
-        constant.TAB + 'symb' + \
-        constant.TAB + 'desc'
+    units = get_units()
+    lines = constant.DIM + constant.LINE * \
+        len(units.expandtabs()) + constant.DEFAULT
 
     print "\n" + lines
     print constant.BOLD + constant.GREEN + format_date(date) \
@@ -224,8 +237,8 @@ def print_header(date):
     return date
 
 
-def print_wsymb(tmp_desc, wsymb):
-    print wsymb[0] + constant.TAB,
+def print_desc(timestamp, tmp_desc):
+    wsymb = get_wsymb(timestamp["Wsymb2"])
     desc = wsymb[1]
 
     if tmp_desc != desc:
@@ -237,12 +250,18 @@ def print_wsymb(tmp_desc, wsymb):
 
 
 def print_parameters(timestamp, time, tmp_desc):
-    for key in ["t", "ws", "pmin"]:
-        print constant.BLUE + str(timestamp[key]) \
-            + constant.DEFAULT + constant.TAB,
+    for key in print_order:
+        parameter = timestamp[key[0]]
 
-    wsymb = get_wsymb(timestamp["Wsymb2"])
-    tmp_desc = print_wsymb(tmp_desc, wsymb)
+        if key[0] == "Wsymb2":
+            symb = get_wsymb(parameter)[0]
+
+            print symb + constant.TAB,
+        else:
+            print constant.BLUE + str(parameter) \
+                + constant.DEFAULT + constant.TAB,
+
+    tmp_desc = print_desc(timestamp, tmp_desc)
     print
 
     return tmp_desc
