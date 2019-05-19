@@ -3,12 +3,12 @@
   + Displays
     + ⏱️ Last time SMHI updated the forecast
     + 📍 Link to location on *Google Maps* and its coordinates
-  + Obtains following data from API
-    + Temperature
-    + Wind
-    + Minimum rain
-    + Description of weather
-      + Matching symbol was added besides the API
+    + Data from API (customizable)
+      + Temperature
+      + Wind
+      + Minimum rain
+      + Description of weather
+        + Matching symbol was added besides the API
   + Accepts parameters for specific location ( see [*How to run*](##How-to-run "Instructions") )
   + If coordinates are invalid, or if Google fails to find location, a default location (current location or Gothenburg) is set
 

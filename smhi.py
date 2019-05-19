@@ -12,8 +12,8 @@ import re
 locations = {"Gothenburg": ("11.986500", "57.696991"),
              "Chalmers": ("11.973600", "57.689701")}
 
-parameters = {"validTime": None, "t": None,
-              "ws": None, "pmin": None, "Wsymb2": None}
+parameters = {"validTime": None, "t": None, "ws": None,
+              "pmin": None, "Wsymb2": None}
 
 print_order = [
     ["Wsymb2", 'symb'],
@@ -51,10 +51,11 @@ def search():
 
 
 def gmaps_response(params):
+    url = constant.G_URL
     for param in params:
-        constant.G_URL += param + constant.PLUS
+        url += param + constant.PLUS
     try:
-        return urllib2.urlopen(constant.G_URL).read()
+        return urllib2.urlopen(url).read()
     except urllib2.HTTPError:
         return None
 
