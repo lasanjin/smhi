@@ -14,15 +14,13 @@ locations = {"Gothenburg": ("11.986500", "57.696991"),
              "Chalmers": ("11.973600", "57.689701")}
 
 parameters = {"validTime": None, "t": None, "ws": None,
-              "pmin": None, "r": None, "tstm": None, "Wsymb2": None}
+              "pmin": None, "Wsymb2": None}
 
 print_order = [
     ["Wsymb2", 'symb'],
     ["t", '°C'],
     ["ws", 'm/s'],
-    ["pmin", 'mm\h'],
-    ["r", '%h'],
-    ["tstm", '%t']]
+    ["pmin", 'mm\h']]
 
 
 def forecast():
