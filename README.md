@@ -27,11 +27,13 @@ $ smhi $1 $@
 - `$1` 
   -  *optional*
   -  forecast (number of days)
-  -  input `0-9`, default is today's weather
+     -  input `0-9`, default is today's weather
+  -  warnings
+     -  input `-w` to show all weather warnings from API
 
 - `$@` 
   -  *optional*
-  -  requires `$1`
+  -  requires `$1` (does not work with `-w`)
   -  location
      -  example
         -  *Göteborg*

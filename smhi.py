@@ -3,6 +3,7 @@
 
 from datetime import datetime
 from datetime import timedelta
+import textwrap
 import urllib2
 import locale
 import json
@@ -13,13 +14,15 @@ locations = {"Gothenburg": ("11.986500", "57.696991"),
              "Chalmers": ("11.973600", "57.689701")}
 
 parameters = {"validTime": None, "t": None, "ws": None,
-              "pmin": None, "Wsymb2": None}
+              "pmin": None, "r": None, "tstm": None, "Wsymb2": None}
 
 print_order = [
     ["Wsymb2", 'symb'],
     ["t", '°C'],
     ["ws", 'm/s'],
-    ["pmin", 'mm\h']]
+    ["pmin", 'mm\h'],
+    ["r", '%h'],
+    ["tstm", '%t']]
 
 
 def forecast():
@@ -130,6 +133,26 @@ def parse_data(rawdata):
     return reference_time, data
 
 
+def warning_response():
+    try:
+        return urllib2.urlopen(
+            constant.W_URL
+        )
+    except urllib2.HTTPError:
+        return None
+
+
+def get_warnings():
+    res = warning_response()
+    if res == None:
+        return constant.NO_WARNING
+
+    rawdata = json.loads(res.read())
+    warnings = rawdata['message']['text']
+
+    return warnings
+
+
 def default_location():
     return locations["Gothenburg"]
 
@@ -164,6 +187,10 @@ def to_float(param):
 def get_time_interval():
     try:
         param = sys.argv[1:][0]
+        if param == constant.WARNING:
+            print_warnings(get_warnings())
+            quit()
+
         interval = to_int(param)
         if 0 < interval:
             return interval
@@ -225,10 +252,14 @@ def get_units():
     return units
 
 
+def get_lines(units):
+    return constant.DIM + constant.LINE * \
+        len(units.expandtabs()) + constant.DEFAULT
+
+
 def print_header(date):
     units = get_units()
-    lines = constant.DIM + constant.LINE * \
-        len(units.expandtabs()) + constant.DEFAULT
+    lines = get_lines(units)
 
     print "\n" + lines
     print constant.BOLD + constant.GREEN + format_date(date) \
@@ -286,6 +317,19 @@ def print_data(forecast, end_date):
         tmp_desc = print_parameters(timestamp, time, tmp_desc)
 
 
+def print_warnings(warnings):
+    lines = get_lines(get_units())
+    length = str(len(lines))
+
+    print constant.NEWLINE + lines
+
+    print ('\n'.join(line for line in re.findall(
+        r'.{1,' + re.escape(length) + '}(?:\s+|$)', warnings))) \
+        .replace("\n\n", "\n")
+
+    print lines + constant.NEWLINE
+
+
 def set_locale(code):
     locale.setlocale(locale.LC_ALL, code)
 
@@ -304,8 +348,13 @@ class constant():
     DEFAULT_LOCATION = ' (default Gothenburg)'
     TAB = '\t'
     PLUS = "+"
+    NEWLINE = '\n'
+    WARNING = '-w'
+    NO_WARNING = 'Inga varningar'
     PREFIX = '\x1b]8;;'
     POSTFIX = '//\aLocation' + PREFIX + '\a'
+    W_URL = 'https://opendata-download-warnings.smhi.se/api/' \
+            'version/2/messages.json'
     G_URL = 'https://www.google.com/maps/place/'
     S_URL = 'https://opendata-download-metfcst.smhi.se/' \
             'api/category/pmp3g/version/2/geotype/point/'
