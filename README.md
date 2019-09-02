@@ -1,3 +1,6 @@
+# SMHI weather forecast CLI
+Something I use daily. Another project I did alongside my studies to learn some basic Bash and Python.
+
 ## Description
   + Outputs weather forecast data from SMHI API in terminal
   + Displays
@@ -10,7 +13,7 @@
       + Description of weather
         + Matching symbol was added besides the API
   + Accepts parameters for specific location ( see [*How to run*](##How-to-run "Instructions") )
-  + If coordinates are invalid, or if Google fails to find location, a default location (current location or Gothenburg) is set
+  + If coordinates are invalid, or if Google fails to find location, a default location (current location or location Gothenburg) is set
 
 <img src="resources/smhi-py.gif" width="500">
 

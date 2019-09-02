@@ -14,13 +14,17 @@ locations = {"Gothenburg": ("11.986500", "57.696991"),
              "Chalmers": ("11.973600", "57.689701")}
 
 parameters = {"validTime": None, "t": None, "ws": None,
-              "pmin": None, "Wsymb2": None}
+              "pmin": None, "r": None, "tstm": None,
+              "vis": None, "Wsymb2": None}
 
 print_order = [
     ["Wsymb2", 'symb'],
     ["t", '°C'],
     ["ws", 'm/s'],
-    ["pmin", 'mm\h']]
+    ["pmin", 'mm\h'],
+    ["r", '%h'],
+    ["vis", 'km'],
+    ["tstm", '%t']]
 
 
 def forecast():
@@ -282,11 +286,16 @@ def print_desc(timestamp, tmp_desc):
 def print_parameters(timestamp, time, tmp_desc):
     for key in print_order:
         parameter = timestamp[key[0]]
+        k = key[0]
 
-        if key[0] == "Wsymb2":
+        if k == "Wsymb2":
             symb = get_wsymb(parameter)[0]
-
             print symb + constant.TAB,
+
+        elif is_hot(key[0], parameter):
+            print constant.YELLOW + str(parameter) \
+                + constant.DEFAULT + constant.TAB,
+
         else:
             print constant.BLUE + str(parameter) \
                 + constant.DEFAULT + constant.TAB,
@@ -295,6 +304,10 @@ def print_parameters(timestamp, time, tmp_desc):
     print
 
     return tmp_desc
+
+
+def is_hot(key, temp):
+    return key == "t" and temp >= 25.0
 
 
 def print_data(forecast, end_date):
@@ -336,6 +349,7 @@ class constant():
     DEFAULT = '\033[0m'
     GREEN = '\033[92m'
     BLUE = '\033[94m'
+    YELLOW = '\033[93m'
     BOLD = "\033[1m"
     DIM = '\033[2m'
     TIME = '⏱️  '
