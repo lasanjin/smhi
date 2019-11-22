@@ -1,10 +1,12 @@
 #!/usr/bin/python
-# -*- coding: utf-8 -*-
+# -*- coding: latin-1 -*-
 
 from datetime import datetime
 from datetime import timedelta
 import textwrap
 import urllib2
+import urllib
+import httplib
 import locale
 import json
 import sys
@@ -13,18 +15,19 @@ import re
 locations = {"Gothenburg": ("11.986500", "57.696991"),
              "Chalmers": ("11.973600", "57.689701")}
 
-parameters = {"validTime": None, "t": None, "ws": None,
-              "pmin": None, "r": None, "tstm": None,
-              "vis": None, "Wsymb2": None}
+parameters = {"validTime": None,
+              "t": None, "ws": None,
+              "pmin": None,
+              "r": None,
+              "tstm": None,
+              "vis": None,
+              "Wsymb2": None}
 
 print_order = [
     ["Wsymb2", 'symb'],
     ["t", '°C'],
     ["ws", 'm/s'],
-    ["pmin", 'mm\h'],
-    ["r", '%h'],
-    ["vis", 'km'],
-    ["tstm", '%t']]
+    ["pmin", 'mm\h']]
 
 
 def forecast():
@@ -56,12 +59,15 @@ def search():
 
 
 def gmaps_response(params):
-    url = constant.G_URL
+    path = ""
     for param in params:
-        url += param + constant.PLUS
+        path += param + constant.PLUS
     try:
+        url = constant.G_URL + urllib2.quote(path)
+
         return urllib2.urlopen(url).read()
-    except urllib2.HTTPError:
+    except httplib.InvalidURL:
+        print constant.INVALID_URL
         return None
 
 
@@ -334,7 +340,7 @@ def print_warnings(warnings):
 
     print constant.NEWLINE + lines
 
-    print ('\n'.join(line for line in re.findall(
+    print('\n'.join(line for line in re.findall(
         r'.{1,' + re.escape(length) + '}(?:\s+|$)', warnings))) \
         .replace("\n\n", "\n")
 
@@ -365,6 +371,7 @@ class constant():
     NO_WARNING = 'Inga varningar'
     PREFIX = '\x1b]8;;'
     POSTFIX = '//\aLocation' + PREFIX + '\a'
+    INVALID_URL = "\nInvalid url"
     W_URL = 'https://opendata-download-warnings.smhi.se/api/' \
             'version/2/messages.json'
     G_URL = 'https://www.google.com/maps/place/'
