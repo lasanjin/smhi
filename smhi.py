@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# -*- coding: latin-1 -*-
+# -*- coding: utf-8 -*-
 
 from datetime import datetime
 from datetime import timedelta
@@ -64,8 +64,8 @@ def gmaps_response(params):
         path += param + constant.PLUS
     try:
         url = constant.G_URL + urllib2.quote(path)
-
         return urllib2.urlopen(url).read()
+
     except httplib.InvalidURL:
         print constant.INVALID_URL
         return None
