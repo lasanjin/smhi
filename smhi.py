@@ -5,8 +5,6 @@ from datetime import datetime
 from datetime import timedelta
 import textwrap
 import urllib2
-import urllib
-import httplib
 import locale
 import json
 import sys
@@ -30,14 +28,14 @@ print_order = [
     ["pmin", 'mm\h']]
 
 
-def forecast():
+def main():
     set_locale("sv_SE.utf-8")
 
     num_of_days = get_time_interval()
     end_date = to_date(num_of_days)
 
-    coords = search()
-    reference_time, forecast = get_data(coords)
+    coords = get_location()
+    reference_time, forecast = get_forecast(coords)
 
     print
     print_reference_time(reference_time)
@@ -46,9 +44,9 @@ def forecast():
     print
 
 
-def search():
+def get_location():
     params = get_params()
-    rawdata = gmaps_response(params)
+    rawdata = get_gmaps_response(params)
 
     if rawdata == None:
         return default_location()
@@ -58,17 +56,14 @@ def search():
     return coords
 
 
-def gmaps_response(params):
+def get_gmaps_response(params):
     path = ""
     for param in params:
         path += param + constant.PLUS
-    try:
-        url = constant.G_URL + urllib2.quote(path)
-        return urllib2.urlopen(url).read()
 
-    except httplib.InvalidURL:
-        print constant.INVALID_URL
-        return None
+    url = api.GMAPS_URL + urllib2.quote(path)
+
+    return request(url)
 
 
 def get_coords(rawdata):
@@ -100,24 +95,14 @@ def find_coord(rawdata, coord):
     return re.search(r''+reg[coord], rawdata)
 
 
-def smhi_response(coords):
-    try:
-        return urllib2.urlopen(
-            constant.S_URL +
-            'lon/' + coords[0] + '/'
-            'lat/' + coords[1] + '/'
-            'data.json'
-        )
-    except urllib2.HTTPError:
-        return None
+def get_forecast(coords):
+    url = api.SMHI_URL(coords[0], coords[1])
+    res = request(url)
 
-
-def get_data(coords):
-    res = smhi_response(coords)
     if res == None:
-        res = smhi_response(default_location())
+        res = get_data(default_location())
 
-    rawdata = json.loads(res.read())
+    rawdata = json.loads(res)
     return parse_data(rawdata)
 
 
@@ -141,17 +126,8 @@ def parse_data(rawdata):
     return reference_time, data
 
 
-def warning_response():
-    try:
-        return urllib2.urlopen(
-            constant.W_URL
-        )
-    except urllib2.HTTPError:
-        return None
-
-
 def get_warnings():
-    res = warning_response()
+    res = request(api.WARNINGS_URL)
     if res == None:
         return constant.NO_WARNING
 
@@ -159,6 +135,20 @@ def get_warnings():
     warnings = rawdata['message']['text']
 
     return warnings
+
+
+def request(url):
+    try:
+        return urllib2.urlopen(url).read()
+
+    except urllib2.HTTPError as e:
+        print "HTTPError: {}, {}".format(e.code, e.reason)
+
+    except urllib2.HTTPException as e:
+        print "HTTPException: {}".format(e)
+
+    except Exception as e:
+        print "Exception: {}".format(e)
 
 
 def default_location():
@@ -241,7 +231,7 @@ def print_coords(coords):
         # hyperlink
         print \
             constant.PIN + \
-            constant.PREFIX + constant.G_URL + cs + constant.POSTFIX + \
+            constant.PREFIX + api.GMAPS_URL + cs + constant.POSTFIX + \
             constant.DIM + " (" + cs + ")" + constant.DEFAULT
 
 
@@ -351,7 +341,22 @@ def set_locale(code):
     locale.setlocale(locale.LC_ALL, code)
 
 
-class constant():
+class api:
+    WARNINGS_URL = 'https://opendata-download-warnings.smhi.se/api/' \
+        'version/2/messages.json'
+    GMAPS_URL = 'https://www.google.com/maps/place/'
+    BASE_URL = 'https://opendata-download-metfcst.smhi.se/' \
+        'api/category/pmp3g/version/2/geotype/point/'
+
+    @staticmethod
+    def SMHI_URL(lon, lat):
+        return api.BASE_URL + \
+            'lon/' + lon + \
+            '/lat/' + lat + \
+            '/data.json'
+
+
+class constant:
     DEFAULT = '\033[0m'
     GREEN = '\033[92m'
     BLUE = '\033[94m'
@@ -372,11 +377,6 @@ class constant():
     PREFIX = '\x1b]8;;'
     POSTFIX = '//\aLocation' + PREFIX + '\a'
     INVALID_URL = "\nInvalid url"
-    W_URL = 'https://opendata-download-warnings.smhi.se/api/' \
-            'version/2/messages.json'
-    G_URL = 'https://www.google.com/maps/place/'
-    S_URL = 'https://opendata-download-metfcst.smhi.se/' \
-            'api/category/pmp3g/version/2/geotype/point/'
 
 
 def get_wsymb(arg):
@@ -411,4 +411,5 @@ def get_wsymb(arg):
     }[arg]
 
 
-forecast()
+if __name__ == "__main__":
+    main()

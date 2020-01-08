@@ -1,5 +1,5 @@
 # SMHI weather forecast CLI
-Something I use daily. Another project I did alongside my studies to learn some basic Bash and Python.
+Another project I did alongside my studies to learn some basic Python and Bash.
 
 ## Description
   + Outputs weather forecast data from SMHI API in terminal
