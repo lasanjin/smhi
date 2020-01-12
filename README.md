@@ -4,16 +4,19 @@ Another project I did alongside my studies to learn some basic Python and Bash.
 ## Description
   + Outputs weather forecast data from SMHI API in terminal
   + Displays
-    + ⏱️ Last time SMHI updated the forecast
-    + 📍 Link to location on *Google Maps* and its coordinates
+    + Ref time: Last time SMHI updated the forecast
+    + Location: Coordinates and link to Google Maps
     + Data from API (customizable)
       + Temperature
       + Wind
-      + Minimum rain
-      + Description of weather
-        + Matching symbol was added besides the API
+      + Min rain
+      + Humidity
+      + Visibility
+      + Thunder
+      + Weather desc.
+        + Matching symbols was added besides the API
   + Accepts parameters for specific location ( see [*How to run*](##How-to-run "Instructions") )
-  + If coordinates are invalid, or if Google fails to find location, a default location (current location or location Gothenburg) is set
+    + If Google fails to find location, current or default location (Gothenburg) is set
 
 <img src="resources/smhi-py.gif" width="500">
 
@@ -43,7 +46,7 @@ $ smhi $1 $@
         -  *Chalmersplatsen 4*
         -  *Kiruna centrum*
         -  *Stockholm Karl XII:s torg*
-  -  input `a-z` `A-Z` `0-9`, default location is your location (or Gothenburg)
+  -  input `a-z` `A-Z` `0-9`, default location is current location (or Gothenburg)
 
 
 ## [Linux](resources/README.md "Instructions for bash script")
