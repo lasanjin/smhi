@@ -1,15 +1,24 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function  # print python2
 from datetime import datetime
 from datetime import timedelta
 import textwrap
-import urllib2
-import httplib
 import locale
 import json
 import sys
 import re
+import six
+
+if six.PY2:  # python2
+    import urllib2
+    import httplib
+elif six.PY3:  # python3
+    import urllib.request
+    import urllib.error as urllib2  # urllib2.HTTPError
+    import urllib.parse
+    import http.client
 
 locations = {"Gothenburg": ("11.986500", "57.696991"),
              "Chalmers": ("11.973600", "57.689701")}
@@ -60,7 +69,10 @@ def get_gmaps_response(params):
     for param in params:
         path += param + const.PLUS
 
-    url = api.GMAPS_URL + urllib2.quote(path)
+    if six.PY2:
+        url = api.GMAPS_URL + urllib2.quote(path)
+    elif six.PY3:
+        url = api.GMAPS_URL + urllib.parse.quote(path)
 
     return request(url)
 
@@ -102,7 +114,7 @@ def get_forecast(coords):
     res = request(url)
 
     if res == None:
-        res = get_data(const.DEFAULT_COORDS)
+        res = request(const.DEFAULT_COORDS)
 
     rawdata = json.loads(res)
     return parse_data(rawdata)
@@ -122,7 +134,8 @@ def parse_data(rawdata):
         for parameter in timestamp['parameters']:
             key = parameter['name']
 
-            if values.has_key(key):
+#           if values.has_key(key):
+            if key in values:
                 values[key] = parameter['values'][0]
 
     return reference_time, forecast
@@ -144,19 +157,22 @@ def get_warnings():
 # -----------------------------------------------------------------
 def request(url):
     try:
-        return urllib2.urlopen(url).read()
+        if six.PY2:
+            return urllib2.urlopen(url).read()
+        elif six.PY3:
+            return urllib.request.urlopen(url).read().decode('utf-8')
 
     except urllib2.HTTPError as e:
-        print "HTTPError: {}".format(e.code)
+        print("HTTPError: {}".format(e.code))
 
-    except urllib2.URLError, e:
-        print "URLError: {}".format(e.reason)
+    except urllib2.URLError as e:
+        print("URLError: {}".format(e.reason))
 
-    except httplib.HTTPException, e:
-        print "HTTPException: {}".format(e)
+    except httplib.HTTPException as e:
+        print("HTTPException: {}".format(e))
 
     except Exception as e:
-        print "Exception: {}".format(e)
+        print("Exception: {}".format(e))
 
 
 def get_time_interval():
@@ -230,38 +246,39 @@ def print_data(reference_time, coords, forecast):
     num_of_days = get_time_interval()
     end_date = to_date(num_of_days)
 
-    print
+    print()
     print_reference_time(reference_time)
     print_coords(coords)
     print_forecast(forecast, end_date)
-    print
+    print()
 
 
 def print_coords(coords):
-    if coords in locations.values():
-        print color.dim(const.LOCATION) \
-            + const.NOT_FOUND \
-            + color.dim(const.DEFAULT_LOCATION)
+    # if coords in locations.values():
+    if coords in list(locations.values()):
+        print(color.dim(const.LOCATION)
+              + const.NOT_FOUND
+              + color.dim(const.DEFAULT_LOCATION))
     else:
         cs = str(coords[1]) + ", " + str(coords[0])
 
         # hyperlink
-        print color.dim(const.LOCATION) \
-            + const.PREFIX + api.GMAPS_URL \
-            + cs + const.POSTFIX(cs)
+        print(color.dim(const.LOCATION)
+              + const.PREFIX + api.GMAPS_URL
+              + cs + const.POSTFIX(cs))
 
 
 def print_reference_time(reference_time):
-    print color.dim(const.TIME) + reference_time
+    print(color.dim(const.TIME) + reference_time)
 
 
 def print_header(date):
     units = get_units()
     lines = get_lines(units)
 
-    print "\n" + lines
-    print const.BOLD + color.green(format_date(date)) + units
-    print lines
+    print("\n" + lines)
+    print(const.BOLD + color.green(format_date(date)) + units)
+    print(lines)
 
     return date
 
@@ -286,9 +303,9 @@ def print_desc(timestamp, tmp_desc):
     desc = wsymb[1]
 
     if tmp_desc != desc:
-        print color.dim(desc),
+        print(color.dim(desc), end=' ')
     else:
-        print color.dim(const.ARROW_DOWN),
+        print(color.dim(const.ARROW_DOWN), end=' ')
 
     return desc
 
@@ -300,16 +317,16 @@ def print_parameters(timestamp, time, tmp_desc):
 
         if k == "Wsymb2":
             symb = get_wsymb(parameter)[0]
-            print symb + const.TAB,
+            print(symb + const.TAB, end=' ')
 
         elif is_hot(key[0], parameter):
-            print color.yellow(str(parameter)) + const.TAB,
+            print(color.yellow(str(parameter)) + const.TAB, end=' ')
 
         else:
-            print color.blue(str(parameter)) + const.TAB,
+            print(color.blue(str(parameter)) + const.TAB, end=' ')
 
     tmp_desc = print_desc(timestamp, tmp_desc)
-    print
+    print()
 
     return tmp_desc
 
@@ -332,7 +349,7 @@ def print_forecast(forecast, end_date):
             tmp_date = print_header(date)
             tmp_desc = None
 
-        print color.dim(time + const.TAB),
+        print(color.dim(time + const.TAB), end=' ')
         tmp_desc = print_parameters(timestamp, time, tmp_desc)
 
 
@@ -340,13 +357,13 @@ def print_warnings(warnings):
     lines = get_lines(get_units())
     length = str(len(lines))
 
-    print const.NEWLINE + lines
+    print(const.NEWLINE + lines)
 
-    print('\n'.join(line for line in re.findall(
-        r'.{1,' + re.escape(length) + '}(?:\s+|$)', warnings))) \
-        .replace("\n\n", "\n")
+    print(('\n'.join(line for line in re.findall(
+        r'.{1,' + re.escape(length) + '}(?:\s+|$)', warnings)))
+        .replace("\n\n", "\n"))
 
-    print lines + const.NEWLINE
+    print(lines + const.NEWLINE)
 
 
 # -----------------------------------------------------------------
