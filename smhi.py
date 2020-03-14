@@ -15,10 +15,10 @@ if six.PY2:  # python2
     import urllib2
     import httplib
 elif six.PY3:  # python3
-    import urllib.request
+    import http.client as httplib  # httplib.HTTPException
     import urllib.error as urllib2  # urllib2.HTTPError
+    import urllib.request
     import urllib.parse
-    import http.client
 
 locations = {"Gothenburg": ("11.986500", "57.696991"),
              "Chalmers": ("11.973600", "57.689701")}
