@@ -4,7 +4,6 @@
 from __future__ import print_function  # print python2
 from datetime import datetime
 from datetime import timedelta
-import textwrap
 import locale
 import json
 import sys
@@ -19,6 +18,7 @@ elif six.PY3:  # python3
     import urllib.error as urllib2  # urllib2.HTTPError
     import urllib.request
     import urllib.parse
+
 
 locations = {"Gothenburg": ("11.986500", "57.696991"),
              "Chalmers": ("11.973600", "57.689701")}
@@ -43,7 +43,7 @@ print_order = [
 
 
 def main():
-    set_locale("sv_SE.utf-8")
+    set_locale(C.LOCALE)
     coords = get_location()
     reference_time, forecast = get_forecast(coords)
     print_data(reference_time, coords, forecast)
@@ -57,7 +57,7 @@ def get_location():
     rawdata = get_gmaps_response(params)
 
     if rawdata == None:
-        return const.DEFAULT_COORDS
+        return C.DEFAULT_COORDS
 
     coords = get_coords(rawdata)
 
@@ -67,12 +67,12 @@ def get_location():
 def get_gmaps_response(params):
     path = ""
     for param in params:
-        path += param + const.PLUS
+        path += param + C.PLUS
 
     if six.PY2:
-        url = api.GMAPS_URL + urllib2.quote(path)
+        url = api.GMAPS + urllib2.quote(path)
     elif six.PY3:
-        url = api.GMAPS_URL + urllib.parse.quote(path)
+        url = api.GMAPS + urllib.parse.quote(path)
 
     return request(url)
 
@@ -84,7 +84,7 @@ def get_coords(rawdata):
         index = get_index(match)
 
         if index == None:
-            return const.DEFAULT_COORDS
+            return C.DEFAULT_COORDS
 
         l = index + 9
         s = rawdata[index:l]
@@ -94,14 +94,13 @@ def get_coords(rawdata):
         if isinstance(f, float) and 7 <= len(coord) <= 9:
             coords.append(coord)
         else:
-            return const.DEFAULT_COORDS
+            return C.DEFAULT_COORDS
 
     return coords
 
 
 def find_coord(rawdata, coord):
-    reg = {"lat": '(?<![0-9])[5-6][0-9]\.\d+',
-           "lon": '(?<![0-9])[1-2][0-9]\.\d+'}
+    reg = C.REGEX
 
     return re.search(r''+reg[coord], rawdata)
 
@@ -110,11 +109,11 @@ def find_coord(rawdata, coord):
 # GET FORECAST
 # -----------------------------------------------------------------
 def get_forecast(coords):
-    url = api.SMHI_URL(coords[0], coords[1])
+    url = api.smhi(coords[0], coords[1])
     res = request(url)
 
     if res == None:
-        res = request(const.DEFAULT_COORDS)
+        res = request(C.DEFAULT_COORDS)
 
     rawdata = json.loads(res)
     return parse_data(rawdata)
@@ -122,14 +121,14 @@ def get_forecast(coords):
 
 def parse_data(rawdata):
     time = rawdata['referenceTime']
-    reference_time = format_time(time, '%H:%M')
+    reference_time = format_time(time, C.format('HM'))
     forecast = []
 
     for timestamp in rawdata['timeSeries']:
         values = parameters.copy()
         forecast.append(values)
         time = timestamp['validTime']
-        values["validTime"] = format_time(time, '%y-%m-%d;%H')
+        values["validTime"] = format_time(time, C.format('ymdH'))
 
         for parameter in timestamp['parameters']:
             key = parameter['name']
@@ -142,9 +141,9 @@ def parse_data(rawdata):
 
 
 def get_warnings():
-    res = request(api.WARNINGS_URL)
+    res = request(api.WARNINGS)
     if res == None:
-        return const.NO_WARNING
+        return C.NO_WARNING
 
     data = json.loads(res)
     warnings = data['message']['text']
@@ -178,7 +177,7 @@ def request(url):
 def get_time_interval():
     try:
         param = sys.argv[1:][0]
-        if param == const.WARNING:
+        if param == C.WARNING:
             print_warnings(get_warnings())
             quit()
 
@@ -210,7 +209,7 @@ def to_date(num_of_days):
     today = datetime.today()
 
     return (today +
-            timedelta(days=num_of_days)).strftime('%y-%m-%d')
+            timedelta(days=num_of_days)).strftime(C.format('ymd'))
 
 
 def to_float(param):
@@ -222,11 +221,11 @@ def to_float(param):
 
 def format_time(time, format):
     return datetime.strptime(
-        time, '%Y-%m-%dT%H:%M:%SZ').strftime(format)
+        time, C.format('YmdHMSZ')).strftime(format)
 
 
 def format_date(date):
-    return datetime.strptime(date, '%y-%m-%d').strftime('%a')
+    return datetime.strptime(date, C.format('ymd')).strftime('%a')
 
 
 def split_timestamp(timestamp):
@@ -256,20 +255,20 @@ def print_data(reference_time, coords, forecast):
 def print_coords(coords):
     # if coords in locations.values():
     if coords in list(locations.values()):
-        print(color.dim(const.LOCATION)
-              + const.NOT_FOUND
-              + color.dim(const.DEFAULT_LOCATION))
+        print(color.dim(C.LOCATION)
+              + C.NOT_FOUND
+              + color.dim(C.DEFAULT_LOCATION))
     else:
         cs = str(coords[1]) + ", " + str(coords[0])
 
         # hyperlink
-        print(color.dim(const.LOCATION)
-              + const.PREFIX + api.GMAPS_URL
-              + cs + const.POSTFIX(cs))
+        print(color.dim(C.LOCATION)
+              + C.PREFIX + api.GMAPS
+              + cs + C.postfix(cs))
 
 
 def print_reference_time(reference_time):
-    print(color.dim(const.TIME) + reference_time)
+    print(color.dim(C.TIME) + reference_time)
 
 
 def print_header(date):
@@ -277,7 +276,7 @@ def print_header(date):
     lines = get_lines(units)
 
     print("\n" + lines)
-    print(const.BOLD + color.green(format_date(date)) + units)
+    print(C.BOLD + color.green(format_date(date)) + units)
     print(lines)
 
     return date
@@ -286,26 +285,26 @@ def print_header(date):
 def get_units():
     units = ""
     for u in print_order:
-        units += const.TAB + u[1]
+        units += C.TAB + u[1]
 
-    units += const.TAB + const.DESCRIPTION
+    units += C.TAB + C.DESCRIPTION
 
     return units
 
 
 def get_lines(units):
-    line = const.LINE * len(units.expandtabs())
+    line = C.LINE * len(units.expandtabs())
     return color.dim(line)
 
 
 def print_desc(timestamp, tmp_desc):
-    wsymb = get_wsymb(timestamp["Wsymb2"])
+    wsymb = get_wsymb(timestamp[C.WSYMB])
     desc = wsymb[1]
 
     if tmp_desc != desc:
         print(color.dim(desc), end=' ')
     else:
-        print(color.dim(const.ARROW_DOWN), end=' ')
+        print(color.dim(C.ARROW_DOWN), end=' ')
 
     return desc
 
@@ -315,15 +314,15 @@ def print_parameters(timestamp, time, tmp_desc):
         parameter = timestamp[key[0]]
         k = key[0]
 
-        if k == "Wsymb2":
+        if k == C.WSYMB:
             symb = get_wsymb(parameter)[0]
-            print(symb + const.TAB, end=' ')
+            print(symb + C.TAB, end=' ')
 
         elif is_hot(key[0], parameter):
-            print(color.yellow(str(parameter)) + const.TAB, end=' ')
+            print(color.yellow(str(parameter)) + C.TAB, end=' ')
 
         else:
-            print(color.blue(str(parameter)) + const.TAB, end=' ')
+            print(color.blue(str(parameter)) + C.TAB, end=' ')
 
     tmp_desc = print_desc(timestamp, tmp_desc)
     print()
@@ -332,7 +331,7 @@ def print_parameters(timestamp, time, tmp_desc):
 
 
 def is_hot(key, temp):
-    return key == "t" and temp >= 25.0
+    return key == C.TEMP and temp >= 25.0
 
 
 def print_forecast(forecast, end_date):
@@ -349,7 +348,7 @@ def print_forecast(forecast, end_date):
             tmp_date = print_header(date)
             tmp_desc = None
 
-        print(color.dim(time + const.TAB), end=' ')
+        print(color.dim(time + C.TAB), end=' ')
         tmp_desc = print_parameters(timestamp, time, tmp_desc)
 
 
@@ -357,31 +356,68 @@ def print_warnings(warnings):
     lines = get_lines(get_units())
     length = str(len(lines))
 
-    print(const.NEWLINE + lines)
+    print(C.NEWLINE + lines)
 
     print(('\n'.join(line for line in re.findall(
         r'.{1,' + re.escape(length) + '}(?:\s+|$)', warnings)))
         .replace("\n\n", "\n"))
 
-    print(lines + const.NEWLINE)
+    print(lines + C.NEWLINE)
 
 
 # -----------------------------------------------------------------
 # CONSTANTS
 # -----------------------------------------------------------------
 class api:
-    GMAPS_URL = 'https://www.google.com/maps/place/'
-    WARNINGS_URL = 'https://opendata-download-warnings.smhi.se/' \
+    GMAPS = 'https://www.google.com/maps/place/'
+    WARNINGS = 'https://opendata-download-warnings.smhi.se/' \
         'api/version/2/messages.json'
-    BASE_URL = 'https://opendata-download-metfcst.smhi.se/' \
+    URL = 'https://opendata-download-metfcst.smhi.se/' \
         'api/category/pmp3g/version/2/geotype/point/'
 
     @staticmethod
-    def SMHI_URL(lon, lat):
-        return api.BASE_URL + \
+    def smhi(lon, lat):
+        return api.URL + \
             'lon/' + lon + \
             '/lat/' + lat + \
             '/data.json'
+
+
+class C:
+    TAB = '\t'
+    NEWLINE = '\n'
+    BOLD = "\033[1m"
+    ARROW_DOWN = "↓"
+    PLUS = "+"
+    LINE = "-"
+    TIME = 'Ref time: '
+    LOCATION = 'Location: '
+    NOT_FOUND = 'not found'
+    DEFAULT_LOCATION = ' (default Gothenburg)'
+    DEFAULT_COORDS = locations["Gothenburg"]
+    WARNING = '-w'
+    NO_WARNING = 'Inga varningar'
+    INVALID_URL = "\nInvalid url"
+    DESCRIPTION = 'desc'
+    PREFIX = '\x1b]8;;'
+    LOCALE = "sv_SE.utf-8"
+    WSYMB = 'Wsymb2'
+    TEMP = 't'
+    REGEX = {"lat": '(?<![0-9])[5-6][0-9]\.\d+',
+             "lon": '(?<![0-9])[1-2][0-9]\.\d+'}
+
+    @staticmethod
+    def postfix(coords):
+        return '//\a' + coords + C.PREFIX + '\a'
+
+    @staticmethod
+    def format(arg):
+        return {
+            'HM': '%H:%M',
+            'ymd': '%y-%m-%d',
+            'ymdH': '%y-%m-%d;%H',
+            'YmdHMSZ': '%Y-%m-%dT%H:%M:%SZ'
+        }[arg]
 
 
 class color:
@@ -407,29 +443,6 @@ class color:
     @staticmethod
     def yellow(output):
         return color.YELLOW + output + color.DEFAULT
-
-
-class const:
-    TAB = '\t'
-    NEWLINE = '\n'
-    BOLD = "\033[1m"
-    ARROW_DOWN = "↓"
-    PLUS = "+"
-    LINE = "-"
-    TIME = 'Ref time: '
-    LOCATION = 'Location: '
-    NOT_FOUND = 'not found'
-    DEFAULT_LOCATION = ' (default Gothenburg)'
-    DEFAULT_COORDS = locations["Gothenburg"]
-    WARNING = '-w'
-    NO_WARNING = 'Inga varningar'
-    INVALID_URL = "\nInvalid url"
-    DESCRIPTION = 'desc'
-    PREFIX = '\x1b]8;;'
-
-    @staticmethod
-    def POSTFIX(coords):
-        return '//\a' + coords + const.PREFIX + '\a'
 
 
 def get_wsymb(arg):

@@ -1,5 +1,5 @@
 # SMHI weather forecast CLI
-Another project I did alongside my studies to learn some basic Python and Bash.
+Outputs SMHI weather forecast or warnings in terminal. Runs with Python 2, 3+.
 
 ## Description
   + Outputs weather forecast data from SMHI API in terminal
