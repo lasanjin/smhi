@@ -161,17 +161,17 @@ def request(url):
         elif six.PY3:
             return urllib.request.urlopen(url).read().decode('utf-8')
 
-    except urllib2.HTTPError as e:
-        print("HTTPError: {}".format(e.code))
+    except urllib.error.HTTPError as e:
+        print("HTTPError:", e.code)
 
-    except urllib2.URLError as e:
-        print("URLError: {}".format(e.reason))
+    except urllib.error.URLError as e:
+        print("URLError:", e.reason)
 
-    except httplib.HTTPException as e:
-        print("HTTPException: {}".format(e))
+    except http.client.HTTPException as e:
+        print("HTTPException:", e)
 
     except Exception as e:
-        print("Exception: {}".format(e))
+        print("Exception:", e)
 
 
 def get_time_interval():
@@ -408,7 +408,7 @@ class C:
 
     @staticmethod
     def postfix(coords):
-        return '//\a' + coords + C.PREFIX + '\a'
+        return '/\a' + coords + C.PREFIX + '\a'
 
     @staticmethod
     def format(arg):
