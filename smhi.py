@@ -262,12 +262,11 @@ def print_values(timestamp, prev_desc):
             symb = get_wsymb_icon(value)[0]
             print(symb + '\t', end=' ')
 
-        elif parameter[0] == 't':
+        elif parameter[0] == 't' and value >= 25.0:
+            print(color.yellow(str(value)) + '\t', end=' ')
 
-            if value >= 25.0:
-                print(color.yellow(str(value)) + '\t', end=' ')
-            elif value >= 30.0:
-                print(color.red(str(value)) + '\t', end=' ')
+        elif parameter[0] == 't' and value >= 30.0:
+            print(color.red(str(value)) + '\t', end=' ')
 
         else:
             print(color.blue(str(value)) + '\t', end=' ')
