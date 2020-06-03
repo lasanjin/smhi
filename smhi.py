@@ -20,30 +20,40 @@ elif six.PY3:  # python3
     import urllib.parse
 
 
-locations = {"Gothenburg": ("11.986500", "57.696991"),
-             "Chalmers": ("11.973600", "57.689701")}
+locations = {'Gothenburg': ('11.986500', '57.696991'),
+             'Chalmers': ('11.973600', '57.689701')}
 
-parameters = {"validTime": None,  # ref time
-              "t": None,  # temp
-              "ws": None,  # wind
-              "pmin": None,  # min rain
-              "r": None,  # humidity
-              "tstm": None,  # thunder
-              "vis": None,  # visibility
-              "Wsymb2": None}  # weather desc.
+parameters = {'validTime': None,  # ref time
+              't': None,  # temp
+              'ws': None,  # wind
+              'pmin': None,  # min rain
+              'r': None,  # humidity
+              'tstm': None,  # thunder
+              'vis': None,  # visibility
+              'Wsymb2': None}  # weather desc.
 
 print_order = [
-    ["Wsymb2", 'symb'],
-    ["t", '°C'],
-    ["ws", 'm/s'],
-    ["pmin", 'mm\h'],
-    ["r", '%h'],
-    ["vis", 'km'],
-    ["tstm", '%t']]
+    ['Wsymb2', 'symb'],
+    ['t', '°C'],
+    ['ws', 'm/s'],
+    ['pmin', 'mm\h'],
+    ['r', '%h'],
+    ['vis', 'km'],
+    ['tstm', '%t']]
 
 
 def main():
-    set_locale(C.LOCALE)
+    try:
+        param = sys.argv[1:][0]
+
+        if param == '-w':
+            print_warnings(get_warnings())
+            quit()
+
+    except Exception:
+        pass
+
+    locale.setlocale(locale.LC_ALL, 'sv_SE.utf-8')
     coords = get_location()
     reference_time, forecast = get_forecast(coords)
     print_data(reference_time, coords, forecast)
@@ -53,69 +63,72 @@ def main():
 # FIND COORDINATES
 # -----------------------------------------------------------------
 def get_location():
-    params = get_params()
-    rawdata = get_gmaps_response(params)
+    try:
+        location = sys.argv[2:]
+    except IndexError:
+        location = ''
 
-    if rawdata == None:
+    url = build_gmaps_request(location)
+    response = request(url)
+
+    if response == None:
         return C.DEFAULT_COORDS
 
-    coords = get_coords(rawdata)
+    coords = find_coords(response)
 
     return coords
 
 
-def get_gmaps_response(params):
-    path = ""
-    for param in params:
-        path += param + C.PLUS
+def build_gmaps_request(location):
+    path = ''
+    for l in location:
+        path += l + '+'
 
     if six.PY2:
-        url = api.GMAPS + urllib2.quote(path)
+        url = api.GMAPS_URL + urllib2.quote(path)
     elif six.PY3:
-        url = api.GMAPS + urllib.parse.quote(path)
+        url = api.GMAPS_URL + urllib.parse.quote(path)
 
-    return request(url)
+    return url
 
 
-def get_coords(rawdata):
+def find_coords(response):
     coords = []
-    for param in ["lon", "lat"]:
-        match = find_coord(rawdata, param)
-        index = get_index(match)
+    for coord in ['lon', 'lat']:
+        match = re.search(r'' + C.REGEX[coord], response)
 
-        if index == None:
+        try:
+            index = match.start()
+        except AttributeError:
             return C.DEFAULT_COORDS
 
         l = index + 9
-        s = rawdata[index:l]
-        f = to_float(s)
-        coord = str(f)
+        string = response[index:l]
 
-        if isinstance(f, float) and 7 <= len(coord) <= 9:
-            coords.append(coord)
+        try:
+            coord = float(string)
+        except ValueError:
+            coord = 1
+
+        if isinstance(coord, float) and 7 <= len(str(coord)) <= 9:
+            coords.append(str(coord))
         else:
             return C.DEFAULT_COORDS
 
     return coords
 
 
-def find_coord(rawdata, coord):
-    reg = C.REGEX
-
-    return re.search(r''+reg[coord], rawdata)
-
-
 # -----------------------------------------------------------------
 # GET FORECAST
 # -----------------------------------------------------------------
 def get_forecast(coords):
-    url = api.smhi(coords[0], coords[1])
-    res = request(url)
+    url = api.url(coords[0], coords[1])
+    response = request(url)
 
-    if res == None:
-        res = request(C.DEFAULT_COORDS)
+    if response == None:
+        response = request(C.DEFAULT_COORDS)
 
-    rawdata = json.loads(res)
+    rawdata = json.loads(response)
     return parse_data(rawdata)
 
 
@@ -128,12 +141,11 @@ def parse_data(rawdata):
         values = parameters.copy()
         forecast.append(values)
         time = timestamp['validTime']
-        values["validTime"] = format_time(time, C.format('ymdH'))
+        values['validTime'] = format_time(time, C.format('ymdH'))
 
         for parameter in timestamp['parameters']:
             key = parameter['name']
 
-#           if values.has_key(key):
             if key in values:
                 values[key] = parameter['values'][0]
 
@@ -141,9 +153,10 @@ def parse_data(rawdata):
 
 
 def get_warnings():
-    res = request(api.WARNINGS)
+    res = request(api.WARNINGS_URL)
+
     if res == None:
-        return C.NO_WARNING
+        return 'INGA VARNINGAR'
 
     data = json.loads(res)
     warnings = data['message']['text']
@@ -162,61 +175,16 @@ def request(url):
             return urllib.request.urlopen(url).read().decode('utf-8')
 
     except urllib.error.HTTPError as e:
-        print("HTTPError:", e.code)
+        print('HTTPError:', e.code)
 
     except urllib.error.URLError as e:
-        print("URLError:", e.reason)
+        print('URLError:', e.reason)
 
     except http.client.HTTPException as e:
-        print("HTTPException:", e)
+        print('HTTPException:', e)
 
     except Exception as e:
-        print("Exception:", e)
-
-
-def get_time_interval():
-    try:
-        param = sys.argv[1:][0]
-        if param == C.WARNING:
-            print_warnings(get_warnings())
-            quit()
-
-        interval = int(param)
-        return interval if interval > 0 and interval < 11 else 1
-
-    except IndexError:
-        return 1
-
-    except ValueError:
-        return 1
-
-
-def get_params():
-    try:
-        return sys.argv[2:]
-    except IndexError:
-        return [""]
-
-
-def get_index(match):
-    try:
-        return match.start()
-    except AttributeError:
-        return None
-
-
-def to_date(num_of_days):
-    today = datetime.today()
-
-    return (today +
-            timedelta(days=num_of_days)).strftime(C.format('ymd'))
-
-
-def to_float(param):
-    try:
-        return float(param)
-    except ValueError:
-        return 1  # if not coord
+        print('Exception:', e)
 
 
 def format_time(time, format):
@@ -224,26 +192,18 @@ def format_time(time, format):
         time, C.format('YmdHMSZ')).strftime(format)
 
 
-def format_date(date):
-    return datetime.strptime(date, C.format('ymd')).strftime('%a')
-
-
-def split_timestamp(timestamp):
-    ts = timestamp["validTime"].split(";")
-
-    return ts[0], ts[1]  # date, time
-
-
-def set_locale(code):
-    locale.setlocale(locale.LC_ALL, code)
-
-
 # -----------------------------------------------------------------
 # PRINT
 # -----------------------------------------------------------------
 def print_data(reference_time, coords, forecast):
-    num_of_days = get_time_interval()
-    end_date = to_date(num_of_days)
+    try:
+        interval = int(sys.argv[1:][0])
+        num_of_days = interval if interval > 0 and interval < 11 else 1
+    except Exception:
+        num_of_days = 1
+
+    end_date = (datetime.today() + timedelta(days=num_of_days)) \
+        .strftime(C.format('ymd'))
 
     print()
     print_reference_time(reference_time)
@@ -255,156 +215,137 @@ def print_data(reference_time, coords, forecast):
 def print_coords(coords):
     # if coords in locations.values():
     if coords in list(locations.values()):
-        print(color.dim(C.LOCATION)
-              + C.NOT_FOUND
-              + color.dim(C.DEFAULT_LOCATION))
+        print(color.dim('LOCATION:'),
+              'NOT FOUND',
+              color.dim(C.DEFAULT_LOCATION))
     else:
-        cs = str(coords[1]) + ", " + str(coords[0])
-
+        cs = str(coords[1]) + ', ' + str(coords[0])
         # hyperlink
-        print(color.dim(C.LOCATION)
-              + C.PREFIX + api.GMAPS
-              + cs + C.postfix(cs))
+        print(color.dim('LOCATION:'),
+              C.PREFIX + api.GMAPS_URL + cs + C.postfix(cs))
 
 
 def print_reference_time(reference_time):
-    print(color.dim(C.TIME) + reference_time)
+    print(color.dim('REF TIME:'), reference_time)
 
 
 def print_header(date):
-    units = get_units()
-    lines = get_lines(units)
+    header = build_header()
+    sep = build_separator(header)
+    day = datetime.strptime(date, C.format('ymd')).strftime('%a')
 
-    print("\n" + lines)
-    print(C.BOLD + color.green(format_date(date)) + units)
-    print(lines)
-
-    return date
-
-
-def get_units():
-    units = ""
-    for u in print_order:
-        units += C.TAB + u[1]
-
-    units += C.TAB + C.DESCRIPTION
-
-    return units
+    print('\n' + sep)
+    print(color.BOLD + color.green(day) + header)
+    print(sep)
 
 
-def get_lines(units):
-    line = C.LINE * len(units.expandtabs())
+def build_header():
+    header = ''
+    for unit in print_order:
+        header += '\t' + unit[1]
+
+    header += '\tdesc'
+
+    return header
+
+
+def build_separator(header):
+    line = '-' * len(header.expandtabs())
     return color.dim(line)
 
 
-def print_desc(timestamp, tmp_desc):
-    wsymb = get_wsymb(timestamp[C.WSYMB])
+def print_values(timestamp, prev_desc):
+    for parameter in print_order:
+        value = timestamp[parameter[0]]
+
+        if parameter[0] == 'Wsymb2':
+            symb = get_wsymb_icon(value)[0]
+            print(symb + '\t', end=' ')
+
+        elif parameter[0] == 't':
+
+            if value >= 25.0:
+                print(color.yellow(str(value)) + '\t', end=' ')
+            elif value >= 30.0:
+                print(color.red(str(value)) + '\t', end=' ')
+
+        else:
+            print(color.blue(str(value)) + '\t', end=' ')
+
+    prev_desc = print_desc(timestamp, prev_desc)
+    print()
+
+    return prev_desc
+
+
+def print_desc(timestamp, prev_desc):
+    wsymb = get_wsymb_icon(timestamp['Wsymb2'])
     desc = wsymb[1]
 
-    if tmp_desc != desc:
+    if prev_desc != desc:
         print(color.dim(desc), end=' ')
     else:
-        print(color.dim(C.ARROW_DOWN), end=' ')
+        print(color.dim('↓'), end=' ')
 
     return desc
 
 
-def print_parameters(timestamp, time, tmp_desc):
-    for key in print_order:
-        parameter = timestamp[key[0]]
-        k = key[0]
-
-        if k == C.WSYMB:
-            symb = get_wsymb(parameter)[0]
-            print(symb + C.TAB, end=' ')
-
-        elif is_hot(key[0], parameter):
-            print(color.yellow(str(parameter)) + C.TAB, end=' ')
-
-        else:
-            print(color.blue(str(parameter)) + C.TAB, end=' ')
-
-    tmp_desc = print_desc(timestamp, tmp_desc)
-    print()
-
-    return tmp_desc
-
-
-def is_hot(key, temp):
-    return key == C.TEMP and temp >= 25.0
-
-
 def print_forecast(forecast, end_date):
-    tmp_date = None
-    tmp_desc = None
+    prev_date = None
+    prev_desc = None
 
     for timestamp in forecast:
-        date, time = split_timestamp(timestamp)
+        ts = timestamp['validTime'].split(';')
+        date, time = ts[0], ts[1]
 
         if date == end_date:
             return
 
-        if date != tmp_date:
-            tmp_date = print_header(date)
-            tmp_desc = None
+        if date != prev_date:
+            print_header(date)
+            prev_date = date
+            prev_desc = None
 
-        print(color.dim(time + C.TAB), end=' ')
-        tmp_desc = print_parameters(timestamp, time, tmp_desc)
+        print(color.dim(time + '\t'), end=' ')
+        prev_desc = print_values(timestamp, prev_desc)
 
 
 def print_warnings(warnings):
-    lines = get_lines(get_units())
-    length = str(len(lines))
+    sep = build_separator(build_header())  # keep same length as header
+    l = str(len(sep))
 
-    print(C.NEWLINE + lines)
-
+    print('\n' + sep)
+    # pretty output
     print(('\n'.join(line for line in re.findall(
-        r'.{1,' + re.escape(length) + '}(?:\s+|$)', warnings)))
-        .replace("\n\n", "\n"))
-
-    print(lines + C.NEWLINE)
+        r'.{1,' + re.escape(l) + '}(?:\s+|$)', warnings)))
+        .replace('\n\n', '\n'))
+    print(sep + '\n')
 
 
 # -----------------------------------------------------------------
 # CONSTANTS
 # -----------------------------------------------------------------
 class api:
-    GMAPS = 'https://www.google.com/maps/place/'
-    WARNINGS = 'https://opendata-download-warnings.smhi.se/' \
+    GMAPS_URL = 'https://www.google.com/maps/place/'
+    WARNINGS_URL = 'https://opendata-download-warnings.smhi.se/' \
         'api/version/2/messages.json'
-    URL = 'https://opendata-download-metfcst.smhi.se/' \
+    BASE_URL = 'https://opendata-download-metfcst.smhi.se/' \
         'api/category/pmp3g/version/2/geotype/point/'
 
     @staticmethod
-    def smhi(lon, lat):
-        return api.URL + \
+    def url(lon, lat):
+        return api.BASE_URL + \
             'lon/' + lon + \
             '/lat/' + lat + \
             '/data.json'
 
 
 class C:
-    TAB = '\t'
-    NEWLINE = '\n'
-    BOLD = "\033[1m"
-    ARROW_DOWN = "↓"
-    PLUS = "+"
-    LINE = "-"
-    TIME = 'Ref time: '
-    LOCATION = 'Location: '
-    NOT_FOUND = 'not found'
-    DEFAULT_LOCATION = ' (default Gothenburg)'
-    DEFAULT_COORDS = locations["Gothenburg"]
-    WARNING = '-w'
-    NO_WARNING = 'Inga varningar'
-    INVALID_URL = "\nInvalid url"
-    DESCRIPTION = 'desc'
+    DEFAULT_LOCATION = 'Gothenburg'
+    DEFAULT_COORDS = locations[DEFAULT_LOCATION]
     PREFIX = '\x1b]8;;'
-    LOCALE = "sv_SE.utf-8"
-    WSYMB = 'Wsymb2'
-    TEMP = 't'
-    REGEX = {"lat": '(?<![0-9])[5-6][0-9]\.\d+',
-             "lon": '(?<![0-9])[1-2][0-9]\.\d+'}
+    REGEX = {'lat': '(?<![0-9])[5-6][0-9]\.\d+',
+             'lon': '(?<![0-9])[1-2][0-9]\.\d+'}
 
     @staticmethod
     def postfix(coords):
@@ -425,8 +366,9 @@ class color:
     GREEN = '\033[92m'
     BLUE = '\033[94m'
     YELLOW = '\033[93m'
-    BOLD = "\033[1m"
+    BOLD = '\033[1m'
     DIM = '\033[2m'
+    RED = '\033[91m'
 
     @staticmethod
     def dim(output):
@@ -444,8 +386,12 @@ class color:
     def yellow(output):
         return color.YELLOW + output + color.DEFAULT
 
+    @staticmethod
+    def red(output):
+        return color.RED + output + color.DEFAULT
 
-def get_wsymb(arg):
+
+def get_wsymb_icon(arg):
     return {
         1: ['☀️', 'Klart'],
         2: ['🌤️', 'Lätt molnighet'],
@@ -477,5 +423,5 @@ def get_wsymb(arg):
     }[arg]
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
