@@ -44,9 +44,9 @@ print_order = [
 
 def main():
     try:
-        param = sys.argv[1:][0]
+        arg = sys.argv[1:][0]
 
-        if param == '-w':
+        if arg == '-w':
             print_warnings(get_warnings())
             quit()
 
