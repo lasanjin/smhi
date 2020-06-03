@@ -18,12 +18,16 @@ Outputs SMHI weather forecast or warnings in terminal. Runs with Python 2, 3+.
   + Accepts parameters for specific location ( see [*How to run*](##How-to-run "Instructions") )
     + If Google fails to find location, current or default location (Gothenburg) is set
 
-<img src="resources/smhi-py.gif" width="500">
+
+## Demo 
+<img src="resources/smhi-py.gif" width="640">
+
 
 ## Install
 ```
 $ curl "https://raw.githubusercontent.com/lasanjin/smhi-cli/master/install.sh" | bash
 ```
+
 
 ## How to run
 ```
