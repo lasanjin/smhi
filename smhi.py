@@ -262,7 +262,7 @@ def print_values(timestamp, prev_desc):
             symb = get_wsymb_icon(value)[0]
             print(symb + '\t', end=' ')
 
-        elif parameter[0] == 't' and value >= 40.0:
+        elif parameter[0] == 't' and value >= 35.0:
             print(color.red(str(value)) + '\t', end=' ')
 
         elif parameter[0] == 't' and value >= 30.0:
@@ -372,7 +372,7 @@ class color:
     DIM = '\033[2m'
     RED = '\033[91m'
     ORANGE = '\033[38;5;202m'
-    
+
     @staticmethod
     def dim(output):
         return color.DIM + output + color.DEFAULT
