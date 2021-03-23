@@ -13,12 +13,10 @@ PY_VERSION = sys.version_info[0]
 
 if PY_VERSION < 3:
     import urllib2
-    import httplib
+    from urllib2 import quote
 elif PY_VERSION >= 3:
-    import http.client as httplib  # httplib.HTTPException
-    import urllib.error as urllib2  # urllib2.HTTPError
-    import urllib.request
-    import urllib.parse
+    import urllib.request as urllib2
+    from urllib.parse import quote
 
 
 LOCATIONS = {'Gothenburg': ('11.986500', '57.696991'),
@@ -31,7 +29,7 @@ PARAMETERS = {'validTime': None,  # ref time
               'r': None,  # humidity
               'tstm': None,  # thunder
               'vis': None,  # visibility
-              'Wsymb2': None}  # weather desUtils.
+              'Wsymb2': None}  # weather desc.
 
 PRINT_ORDER = [
     ['Wsymb2', 'symb'],
@@ -44,6 +42,7 @@ PRINT_ORDER = [
 
 
 def main():
+    locale.setlocale(locale.LC_ALL, 'sv_SE.utf-8')
     try:
         interval = int(sys.argv[1:][0])
         num_of_days = interval if interval > 0 and interval < 11 else 1
@@ -57,15 +56,15 @@ def main():
         num_of_days = 1
         pass
 
-    locale.setlocale(locale.LC_ALL, 'sv_SE.utf-8')
+    info = Style.style("[INFO]", [], "green")
+    print(info, "FETCHING DATA...")
+
     coords = get_location()
     reference_time, forecast = get_forecast(coords)
+    # print(json.dumps(forecast, indent=2, ensure_ascii=False))  # debug
     print_data(reference_time, coords, forecast, num_of_days)
 
 
-# -----------------------------------------------------------------
-# FIND COORDINATES
-# -----------------------------------------------------------------
 def get_location():
     try:
         location = sys.argv[2:]
@@ -88,12 +87,7 @@ def build_gmaps_request(location):
     for l in location:
         path += l + '+'
 
-    if PY_VERSION < 3:
-        url = Api.GMAPS_URL + urllib2.quote(path)
-    elif PY_VERSION >= 3:
-        url = Api.GMAPS_URL + urllib.parse.quote(path)
-
-    return url
+    return Api.GMAPS_URL + quote(path)
 
 
 def find_coords(response):
@@ -122,9 +116,6 @@ def find_coords(response):
     return coords
 
 
-# -----------------------------------------------------------------
-# GET FORECAST
-# -----------------------------------------------------------------
 def get_forecast(coords):
     url = Api.url(coords[0], coords[1])
     resp = request(url)
@@ -160,7 +151,6 @@ def parse_data(json_data):
 
 def get_warnings():
     res = request(Api.WARNINGS_URL)
-
     if res == None:
         return 'INGA VARNINGAR'
 
@@ -170,25 +160,9 @@ def get_warnings():
     return warnings
 
 
-# -----------------------------------------------------------------
-# HELP FUNCTIONS
-# -----------------------------------------------------------------
 def request(url):
     try:
-        if PY_VERSION < 3:
-            return urllib2.urlopen(url).read()
-        elif PY_VERSION >= 3:
-            return urllib.request.urlopen(url).read().decode('utf-8')
-
-    except urllib.error.HTTPError as e:
-        print('HTTPError:', e.code)
-
-    except urllib.error.URLError as e:
-        print('URLError:', e.reason)
-
-    except http.client.HTTPException as e:
-        print('HTTPException:', e)
-
+        return urllib2.urlopen(url).read().decode('utf-8')
     except Exception as e:
         print('Exception:', e)
 
@@ -198,118 +172,6 @@ def format_time(time, format):
         time, Utils.format('YmdHMSZ')).strftime(format)
 
 
-# -----------------------------------------------------------------
-# PRINT
-# -----------------------------------------------------------------
-def print_data(reference_time, coords, forecast, num_of_days):
-    end_date = (datetime.today() + timedelta(days=num_of_days)) \
-        .strftime(Utils.format('ymd'))
-
-    print()
-    print_reference_time(reference_time)
-    print_coords(coords)
-    print_forecast(forecast, end_date)
-    print()
-
-
-def print_coords(coords):
-    if coords in LOCATIONS.values():
-        print(Style.dim('LOCATION:'),
-              'NOT FOUND',
-              Style.dim(Utils.DEFAULT_LOCATION))
-    else:
-        cs = str(coords[1]) + ', ' + str(coords[0])
-        # hyperlink
-        print(Style.dim('LOCATION:'),
-              Utils.PREFIX + Api.GMAPS_URL + cs + Utils.postfix(cs))
-
-
-def print_reference_time(reference_time):
-    print(Style.dim('REF TIME:'), reference_time)
-
-
-def print_header(date):
-    header = build_header()
-    line = Style.dim('-' * len(header.expandtabs()))
-    day = datetime.strptime(date, Utils.format('ymd')).strftime('%a')
-
-    print('\n' + line)
-    print(Style.BOLD + Style.green(day) + header)
-    print(line)
-
-
-def build_header():
-    header = ''
-    for unit in PRINT_ORDER:
-        header += '\t' + unit[1]
-    header += '\tdesc'
-
-    return header
-
-
-def print_values(timestamp, prev_desc):
-    for parameter in PRINT_ORDER:
-        value = timestamp[parameter[0]]
-
-        if parameter[0] == 'Wsymb2':
-            symb = get_wsymb_icon(value)[0]
-            print(symb + '\t', end=' ')
-        else:
-            print(Style.blue(str(value)) + '\t', end=' ')
-
-    prev_desc = print_desc(timestamp, prev_desc)
-    print()
-
-    return prev_desc
-
-
-def print_desc(timestamp, prev_desc):
-    wsymb = get_wsymb_icon(timestamp['Wsymb2'])
-    desc = wsymb[1]
-
-    if prev_desc != desc:
-        print(Style.dim(desc), end=' ')
-    else:
-        print(Style.dim('↓'), end=' ')
-
-    return desc
-
-
-def print_forecast(forecast, end_date):
-    prev_date = None
-    prev_desc = None
-
-    for timestamp in forecast:
-        ts = timestamp['validTime'].split(';')
-        date, time = ts[0], ts[1]
-
-        if date == end_date:
-            return
-
-        if date != prev_date:
-            print_header(date)
-            prev_date = date
-            prev_desc = None
-
-        print(Style.dim(time + '\t'), end=' ')
-        prev_desc = print_values(timestamp, prev_desc)
-
-
-def print_warnings(warnings):
-    sep = build_separator(build_header())  # keep same length as header
-    l = str(len(sep))
-
-    print('\n' + sep)
-    # pretty output
-    print(('\n'.join(line for line in re.findall(
-        r'.{1,' + re.escape(l) + '}(?:\s+|$)', warnings)))
-        .replace('\n\n', '\n'))
-    print(sep + '\n')
-
-
-# -----------------------------------------------------------------
-# CONSTANTS
-# -----------------------------------------------------------------
 class Api:
     GMAPS_URL = 'https://www.google.com/maps/place/'
     WARNINGS_URL = 'https://opendata-download-warnings.smhi.se/' \
@@ -350,55 +212,160 @@ class Style:
     DEFAULT = '\033[0m'
     GREEN = '\033[92m'
     BLUE = '\033[94m'
-    YELLOW = '\033[93m'
-    BOLD = '\033[1m'
+    BOLD = "\033[1m"
     DIM = '\033[2m'
-    RED = '\033[91m'
-    ORANGE = '\033[38;5;202m'
 
     @staticmethod
-    def dim(output):
-        return Style.DIM + output + Style.DEFAULT
+    def style(output, styles, color=None):
+        if color is not None:
+            output = {
+                'green': Style.GREEN + '%s',
+                'blue': Style.BLUE + '%s',
+            }[color] % output
+
+        for style in styles:
+            output = {
+                'bold': Style.BOLD + '%s',
+                'dim': Style.DIM + '%s'
+            }[style] % output
+
+        return output + Style.DEFAULT
 
     @staticmethod
-    def green(output):
-        return Style.GREEN + output + Style.DEFAULT
+    def wsymb_icon(arg):
+        return {
+            1: ['☀️', 'Klart'],
+            2: ['🌤️', 'Lätt molnighet'],
+            3: ['⛅', 'Halvklart'],
+            4: ['🌥️', 'Molnigt'],
+            5: ['☁️', 'Mycket moln'],
+            6: ['☁️', 'Mulet'],
+            7: ['🌫', 'Dimma'],
+            8: ['🌦️', 'Lätt regnskur'],
+            9: ['🌦️', 'Regnskur'],
+            10: ['🌦️', 'Kraftig regnskur'],
+            11: ['⛈️', 'Åskväder'],
+            12: ['🌨️', 'Lätt regnblandad snöby'],
+            13: ['🌨️', 'Regnblandad snöby'],
+            14: ['🌨️', 'Kraftig regnblandad snöby'],
+            15: ['❄️', 'Lätt snöbyar'],
+            16: ['❄️', 'Snöby'],
+            17: ['❄️', 'Kraftig snöby'],
+            18: ['🌧️', 'Lätt regn'],
+            19: ['🌧️', 'Regn'],
+            20: ['🌧️', 'Kraftigt regn'],
+            21: ['🌩️', 'Åska'],
+            22: ['🌨️', 'Lätt regnblandad snö'],
+            23: ['🌨️', 'Regnblandad snö'],
+            24: ['🌨️', 'Kraftig regnblandad snö'],
+            25: ['❄️', 'Lätt snöfall'],
+            26: ['❄️', 'Snöfall'],
+            27: ['❄️', 'Kraftigt snöfall']
+        }[arg]
 
-    @staticmethod
-    def blue(output):
-        return Style.BLUE + output + Style.DEFAULT
+
+# -----------------------------------------------------------------
+# PRINT
+# -----------------------------------------------------------------
+def print_data(reference_time, coords, forecast, num_of_days):
+    end_date = (
+        datetime.today() + timedelta(days=num_of_days)) \
+        .strftime(Utils.format('ymd'))
+
+    print()
+    # print reference time
+    print(Style.style('REF TIME:', ['dim']), reference_time)
+    # print coords
+    if coords in LOCATIONS.values():
+        print(Style.style('LOCATION:', ['dim']),
+              'NOT FOUND',
+              Style.style(Utils.DEFAULT_LOCATION, ['dim']))
+    else:
+        cs = str(coords[1]) + ', ' + str(coords[0])
+        # hyperlink
+        print(Style.style('LOCATION:', ['dim']),
+              Utils.PREFIX + Api.GMAPS_URL + cs + Utils.postfix(cs))
+    # print forecast
+    print_forecast(forecast, end_date)
+    print()
 
 
-def get_wsymb_icon(arg):
-    return {
-        1: ['☀️', 'Klart'],
-        2: ['🌤️', 'Lätt molnighet'],
-        3: ['⛅', 'Halvklart'],
-        4: ['🌥️', 'Molnigt'],
-        5: ['☁️', 'Mycket moln'],
-        6: ['☁️', 'Mulet'],
-        7: ['🌫', 'Dimma'],
-        8: ['🌦️', 'Lätt regnskur'],
-        9: ['🌦️', 'Regnskur'],
-        10: ['🌦️', 'Kraftig regnskur'],
-        11: ['⛈️', 'Åskväder'],
-        12: ['🌨️', 'Lätt regnblandad snöby'],
-        13: ['🌨️', 'Regnblandad snöby'],
-        14: ['🌨️', 'Kraftig regnblandad snöby'],
-        15: ['❄️', 'Lätt snöbyar'],
-        16: ['❄️', 'Snöby'],
-        17: ['❄️', 'Kraftig snöby'],
-        18: ['🌧️', 'Lätt regn'],
-        19: ['🌧️', 'Regn'],
-        20: ['🌧️', 'Kraftigt regn'],
-        21: ['🌩️', 'Åska'],
-        22: ['🌨️', 'Lätt regnblandad snö'],
-        23: ['🌨️', 'Regnblandad snö'],
-        24: ['🌨️', 'Kraftig regnblandad snö'],
-        25: ['❄️', 'Lätt snöfall'],
-        26: ['❄️', 'Snöfall'],
-        27: ['❄️', 'Kraftigt snöfall']
-    }[arg]
+def print_forecast(forecast, end_date):
+    prev_date = None
+    prev_desc = None
+
+    for timestamp in forecast:
+        ts = timestamp['validTime'].split(';')
+        date, time = ts[0], ts[1]
+        if date == end_date:
+            return
+        if date != prev_date:
+            print_header(date)
+            prev_date = date
+            prev_desc = None
+
+        print(Style.style(time + '\t', ['dim']), end=' ')
+
+        prev_desc = print_values(timestamp, prev_desc)
+
+
+def print_header(date):
+    header = build_header()
+    line = Style.style('-' * len(header.expandtabs()), ['dim'])
+    day = datetime.strptime(date, Utils.format('ymd')).strftime('%a')
+
+    print('\n' + line)
+    print(Style.style(day, ['bold'], 'green') + header)
+    print(line)
+
+
+def build_header():
+    header = ''
+    for unit in PRINT_ORDER:
+        header += '\t' + unit[1]
+    header += '\tdesc'
+
+    return header
+
+
+def print_values(timestamp, prev_desc):
+    for parameter in PRINT_ORDER:
+        value = timestamp[parameter[0]]
+
+        if parameter[0] == 'Wsymb2':
+            symb = Style.wsymb_icon(value)[0]
+            print(symb + '\t', end=' ')
+        else:
+            print(Style.style(str(value), [], 'blue') + '\t', end=' ')
+
+    prev_desc = print_desc(timestamp, prev_desc)
+    print()
+
+    return prev_desc
+
+
+def print_desc(timestamp, prev_desc):
+    wsymb = Style.wsymb_icon(timestamp['Wsymb2'])
+    desc = wsymb[1]
+
+    if prev_desc != desc:
+        print(Style.style(desc, ['dim']), end=' ')
+    else:
+        print(Style.style('↓', ['dim']), end=' ')
+
+    return desc
+
+
+def print_warnings(warnings):
+    sep = build_separator(build_header())  # keep same length as header
+    l = str(len(sep))
+
+    print('\n' + sep)
+    # pretty output
+    print(('\n'.join(line for line in re.findall(
+        r'.{1,' + re.escape(l) + '}(?:\s+|$)', warnings)))
+        .replace('\n\n', '\n'))
+    print(sep + '\n')
 
 
 if __name__ == '__main__':
