@@ -208,7 +208,7 @@ class Utils:
         }[arg]
 
     @staticmethod
-    def style(output, color, styles=[]):
+    def style(output, styles=[], color=None):
         if color is not None:
             output = {
                 'green': '\033[92m%s',
