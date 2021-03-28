@@ -1,12 +1,12 @@
-# SMHI weather forecast CLI
-Outputs SMHI weather forecast or warnings in terminal. Runs with Python 2, 3+.
+# SMHI Weather Forecast CLI
+Outputs SMHI weather forecast (or warnings) in terminal.
 
 ## Description
   + Outputs weather forecast data from SMHI API in terminal
-  + Displays
+  + Shows
     + Ref time: Last time SMHI updated the forecast
     + Location: Coordinates and link to Google Maps
-    + Data from API (customizable)
+    + Data from API (Customizable)
       + Temperature
       + Wind
       + Min rain
@@ -16,11 +16,11 @@ Outputs SMHI weather forecast or warnings in terminal. Runs with Python 2, 3+.
       + Weather desc.
         + Matching symbols was added besides the API
   + Accepts parameters for specific location ( see [*How to run*](##How-to-run "Instructions") )
-    + If Google fails to find location, current or default location (Gothenburg) is set
+    + If Google fails to find location current or default location (Gothenburg) is set
 
 
 ## Demo 
-<img src="resources/smhi-py.gif" width="640">
+<img src="demo.gif" width="640">
 
 
 ## Install
@@ -35,23 +35,19 @@ $ smhi $1 $@
 ```
 
 - `$1` 
-  -  *optional*
-  -  forecast (number of days)
-     -  input `0-9`, default is today's weather
-  -  warnings
-     -  input `-w` to show all weather warnings from API
+  -  *Optional*
+  -  Forecast (Number of days) (Default is today's weather)
+     -  `0-9`
+  -  Warnings
+     -  `-w`
 
 - `$@` 
-  -  *optional*
-  -  requires `$1` (does not work with `-w`)
-  -  location
-     -  example
+  -  *Optional*
+  -  Requires `$1` (Does not work with `-w`)
+  -  Location (Default location is current location or Gothenburg)
+     -  Example
         -  *Göteborg*
         -  *Chalmersplatsen 4*
         -  *Kiruna centrum*
         -  *Stockholm Karl XII:s torg*
-  -  input `a-z` `A-Z` `0-9`, default location is current location (or Gothenburg)
-
-
-## [Linux](resources/README.md "Instructions for bash script")
-Open link for instructions on how to run bash script [*smhi.sh*](smhi.sh "Source code")
+  -  `a-z` `A-Z` `0-9`

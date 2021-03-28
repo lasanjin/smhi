@@ -56,7 +56,7 @@ def main():
         num_of_days = 1
         pass
 
-    info = Style.style("[INFO]", [], "green")
+    info = Utils.style("[INFO]", [], "green")
     print(info, "FETCHING DATA...")
 
     coords = get_location()
@@ -207,29 +207,21 @@ class Utils:
             'YmdHMSZ': '%Y-%m-%dT%H:%M:%SZ'
         }[arg]
 
-
-class Style:
-    DEFAULT = '\033[0m'
-    GREEN = '\033[92m'
-    BLUE = '\033[94m'
-    BOLD = "\033[1m"
-    DIM = '\033[2m'
-
     @staticmethod
-    def style(output, styles, color=None):
+    def style(output, color, styles=[]):
         if color is not None:
             output = {
-                'green': Style.GREEN + '%s',
-                'blue': Style.BLUE + '%s',
+                'green': '\033[92m%s',
+                'blue': '\033[94m%s',
             }[color] % output
 
         for style in styles:
             output = {
-                'bold': Style.BOLD + '%s',
-                'dim': Style.DIM + '%s'
+                'bold': '\033[1m%s',
+                'dim': '\033[2m%s'
             }[style] % output
 
-        return output + Style.DEFAULT
+        return output + '\033[0m'  # default
 
     @staticmethod
     def wsymb_icon(arg):
@@ -274,16 +266,16 @@ def print_data(reference_time, coords, forecast, num_of_days):
 
     print()
     # print reference time
-    print(Style.style('REF TIME:', ['dim']), reference_time)
+    print(Utils.style('REF TIME:', ['dim']), reference_time)
     # print coords
     if coords in LOCATIONS.values():
-        print(Style.style('LOCATION:', ['dim']),
+        print(Utils.style('LOCATION:', ['dim']),
               'NOT FOUND',
-              Style.style(Utils.DEFAULT_LOCATION, ['dim']))
+              Utils.style(Utils.DEFAULT_LOCATION, ['dim']))
     else:
         cs = str(coords[1]) + ', ' + str(coords[0])
         # hyperlink
-        print(Style.style('LOCATION:', ['dim']),
+        print(Utils.style('LOCATION:', ['dim']),
               Utils.PREFIX + Api.GMAPS_URL + cs + Utils.postfix(cs))
     # print forecast
     print_forecast(forecast, end_date)
@@ -304,18 +296,18 @@ def print_forecast(forecast, end_date):
             prev_date = date
             prev_desc = None
 
-        print(Style.style(time + '\t', ['dim']), end=' ')
+        print(Utils.style(time + '\t', ['dim']), end=' ')
 
         prev_desc = print_values(timestamp, prev_desc)
 
 
 def print_header(date):
     header = build_header()
-    line = Style.style('-' * len(header.expandtabs()), ['dim'])
+    line = Utils.style('-' * len(header.expandtabs()), ['dim'])
     day = datetime.strptime(date, Utils.format('ymd')).strftime('%a')
 
     print('\n' + line)
-    print(Style.style(day, ['bold'], 'green') + header)
+    print(Utils.style(day, ['bold'], 'green') + header)
     print(line)
 
 
@@ -333,10 +325,10 @@ def print_values(timestamp, prev_desc):
         value = timestamp[parameter[0]]
 
         if parameter[0] == 'Wsymb2':
-            symb = Style.wsymb_icon(value)[0]
+            symb = Utils.wsymb_icon(value)[0]
             print(symb + '\t', end=' ')
         else:
-            print(Style.style(str(value), [], 'blue') + '\t', end=' ')
+            print(Utils.style(str(value), [], 'blue') + '\t', end=' ')
 
     prev_desc = print_desc(timestamp, prev_desc)
     print()
@@ -345,13 +337,13 @@ def print_values(timestamp, prev_desc):
 
 
 def print_desc(timestamp, prev_desc):
-    wsymb = Style.wsymb_icon(timestamp['Wsymb2'])
+    wsymb = Utils.wsymb_icon(timestamp['Wsymb2'])
     desc = wsymb[1]
 
     if prev_desc != desc:
-        print(Style.style(desc, ['dim']), end=' ')
+        print(Utils.style(desc, ['dim']), end=' ')
     else:
-        print(Style.style('↓', ['dim']), end=' ')
+        print(Utils.style('↓', ['dim']), end=' ')
 
     return desc
 

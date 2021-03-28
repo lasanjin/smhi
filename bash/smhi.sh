@@ -1,22 +1,39 @@
 #!/bin/bash
 
-smhi() {
+main() {
+    #osx
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        JQ='jq-osx-amd64'
+    #linux
+    else
+        JQ='./resources/jq-linux64'
+    fi
+
     if ! is_valid $1; then
-        echo -e "Invalid input"
+        echo -e "INVALID INPUT"
         return 0
     fi
 
-    local desclang='Wsymb2SV.txt'
+    local desc_lang='Wsymb2SV.txt'
     local lang='sv_SE.utf-8'
     if equals $2 "en"; then
-        desclang='Wsymb2EN.txt'
+        desc_lang='Wsymb2EN.txt'
         lang='en_US.utf8'
     fi
 
-    local surl=$(smhi_url)
-    read -r -a forecast -d '' <<<"$(smhi_data $surl)"
-    currentdir
-    style
+    build_url
+    read -r -a forecast -d '' <<<"$(get_data $URL)"
+    # Get dir of script
+    dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+    # Init colors
+    DEFAULT='\e[0m'
+    BOLD='\e[1m'
+    GREEN='\e[32m'
+    BLUE='\e[94m'
+    YELLOW='\e[33m'
+    ORANGE='\e[38;5;208m'
+    RED='\e[31m'
+    DIM='\e[2m'
 
     local units='\t°C\tm/s\tmm\h\tsymb\tdesc'
     local today=$(date +'%Y-%m-%d')
@@ -51,7 +68,7 @@ smhi() {
             tmpdesc=" "
         fi
 
-        local desc=$(sed "${Wsymb2}q;d" $dir/resources/$desclang)
+        local desc=$(sed "${Wsymb2}q;d" $dir/resources/$desc_lang)
         local symbol=${desc%,*}
 
         if ! equals "$desc" "$tmpdesc"; then
@@ -76,46 +93,53 @@ smhi() {
     done
 }
 
-smhi_url() {
-    local lat='lat/57.715626/'
-    local long='lon/11.932365/'
+build_url() {
+    IFS=',' read -r -a coords <<<"$(curl -s ipinfo.io | jq -r '.["loc"]')"
+    unset IFS
+
+    if ! is_empty ${coords[@]}; then
+        local lat=${coords[0]}
+        local long=${coords[1]}
+    else
+        local lat='57.715626'
+        local long='11.932365'
+    fi
+
+    echo -e "LOCATION: $lat, $long"
+
     local hostname='https://opendata-download-metfcst.smhi.se/'
     local api='api/category/pmp3g/version/2/geotype/point/'
-    local filename='data.json'
-    local surl=''$hostname''$api''$long''$lat''$filename''
-    echo $surl
+    local type='data.json'
+    URL=''$hostname''$api'lon/'$long'/lat/'$lat'/'$type''
 }
 
-smhi_data() {
-    local rawdata=$(
-        curl -s "$surl" | jq -r '.timeSeries[].parameters|=sort_by(.name) | 
+get_data() {
+    local raw_data=$(
+        curl -s "$URL" | $JQ -r '.timeSeries[].parameters|=sort_by(.name) | 
     .timeSeries[] | .validTime, (.parameters[] | 
     select(.name == ("Wsymb2", "pmin", "t", "ws")) | .values[])'
     )
-    echo ${rawdata[@]}
+    echo ${raw_data[@]}
 }
 
-style() {
-    DEFAULT='\e[0m'
-    BOLD='\e[1m'
-    GREEN='\e[32m'
-    BLUE='\e[94m'
-    YELLOW='\e[33m'
-    ORANGE='\e[38;5;208m'
-    RED='\e[31m'
-    DIM='\e[2m'
+temp() {
+    [ 1 -eq $(echo "$2 >= $1" | bc) ]
 }
 
-currentdir() { dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"; }
+equals() {
+    [ "$1" == "$2" ]
+}
 
-temp() { [ 1 -eq $(echo "$2 >= $1" | bc) ]; }
+is_integer() {
+    [[ "$1" =~ ^[0-9]+$ ]]
+}
 
-equals() { [ "$1" == "$2" ]; }
+is_empty() {
+    [ -z "$1" ]
+}
 
-is_integer() { [[ "$1" =~ ^[0-9]+$ ]]; }
+is_valid() {
+    is_integer $1 && ! [ $1 -lt 1 ] && ! [ $1 -gt 10 ]
+}
 
-is_empty() { [ -z "$1" ]; }
-
-is_valid() { is_integer $1 && ! [ $1 -lt 1 ] && ! [ $1 -gt 10 ]; }
-
-smhi $1 $2
+main $1 $2
