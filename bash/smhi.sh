@@ -1,12 +1,13 @@
 #!/bin/bash
 
 main() {
+    dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
     #osx
     if [[ "$OSTYPE" == "darwin"* ]]; then
-        JQ='jq-osx-amd64'
+        JQ="$dir/resources/jq-osx-amd64"
     #linux
     else
-        JQ='./resources/jq-linux64'
+        JQ="$dir/resources/jq-linux64"
     fi
 
     if ! is_valid $1; then
@@ -24,7 +25,6 @@ main() {
     build_url
     read -r -a forecast -d '' <<<"$(get_data $URL)"
     # Get dir of script
-    dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
     # Init colors
     DEFAULT='\e[0m'
     BOLD='\e[1m'
